@@ -22,11 +22,13 @@ class ApiException implements Exception {
 
 /// Typed client for the booking API (api-performance-lab).
 class BookingApi {
-  BookingApi({required this.baseUrl, http.Client? client, this.timeout = const Duration(seconds: 15)})
+  BookingApi(
+      {required this.baseUrl, http.Client? client, this.timeout = const Duration(seconds: 15)})
       : _client = client ?? http.Client();
 
   /// On the Android emulator, 10.0.2.2 is the host machine.
-  static const defaultBaseUrl = String.fromEnvironment('API_URL', defaultValue: 'http://10.0.2.2:8000');
+  static const defaultBaseUrl =
+      String.fromEnvironment('API_URL', defaultValue: 'http://10.0.2.2:8000');
 
   final String baseUrl;
   final Duration timeout;

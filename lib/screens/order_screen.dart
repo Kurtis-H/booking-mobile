@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../api/models.dart';
 import '../logic/format.dart';
@@ -43,7 +43,8 @@ class _OrderScreenState extends State<OrderScreen> {
                       color: Theme.of(context).colorScheme.secondaryContainer,
                       child: const Padding(
                         padding: EdgeInsets.all(12),
-                        child: Text('Thanks! Your order is confirmed.', key: ValueKey('order-confirmation')),
+                        child: Text('Thanks! Your order is confirmed.',
+                            key: ValueKey('order-confirmation')),
                       ),
                     ),
                   ),

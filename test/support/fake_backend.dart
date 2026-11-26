@@ -44,10 +44,15 @@ class FakeBackend {
   List<Map<String, Object>> _available(int eventId) =>
       seats.where((s) => s['event'] == eventId && s['status'] == 'available').toList();
 
-  Map<String, Object> _seatOut(Map<String, Object> s) =>
-      {'id': s['id']!, 'label': s['label']!, 'price_cents': s['price_cents']!, 'status': s['status']!};
+  Map<String, Object> _seatOut(Map<String, Object> s) => {
+        'id': s['id']!,
+        'label': s['label']!,
+        'price_cents': s['price_cents']!,
+        'status': s['status']!
+      };
 
-  void sellBehindTheScenes(int seatId) => seats.firstWhere((s) => s['id'] == seatId)['status'] = 'sold';
+  void sellBehindTheScenes(int seatId) =>
+      seats.firstWhere((s) => s['id'] == seatId)['status'] = 'sold';
 
   Future<http.Response> _handle(http.Request request) async {
     if (offline) throw http.ClientException('offline');
@@ -60,12 +65,17 @@ class FakeBackend {
     final user = validKeys.contains(key) ? key : null;
 
     http.Response json(Object body, [int status = 200, Map<String, String> headers = const {}]) =>
-        http.Response(jsonEncode(body), status, headers: {'content-type': 'application/json', ...headers});
+        http.Response(jsonEncode(body), status,
+            headers: {'content-type': 'application/json', ...headers});
     http.Response notFound(String what) => json({'detail': '$what not found'}, 404);
 
     if (request.method == 'GET' && path.length == 1 && path[0] == 'events') {
-      final page = events.skip(offset).take(limit).map((e) => {...e, 'available_seats': _available(e['id']! as int).length});
-      return json({'items': page.toList(), 'total': events.length, 'limit': limit, 'offset': offset});
+      final page = events
+          .skip(offset)
+          .take(limit)
+          .map((e) => {...e, 'available_seats': _available(e['id']! as int).length});
+      return json(
+          {'items': page.toList(), 'total': events.length, 'limit': limit, 'offset': offset});
     }
     if (request.method == 'GET' && path.length >= 2 && path[0] == 'events') {
       final id = int.tryParse(path[1]);
@@ -83,9 +93,12 @@ class FakeBackend {
         if (failNextOrderWith != null) {
           final status = failNextOrderWith!;
           failNextOrderWith = null;
-          return json({'detail': 'failed'}, status, {if (retryAfter != null) 'retry-after': retryAfter!});
+          return json(
+              {'detail': 'failed'}, status, {if (retryAfter != null) 'retry-after': retryAfter!});
         }
-        final ids = ((jsonDecode(request.body) as Map<String, dynamic>)['seat_ids'] as List<dynamic>).cast<int>();
+        final ids =
+            ((jsonDecode(request.body) as Map<String, dynamic>)['seat_ids'] as List<dynamic>)
+                .cast<int>();
         final chosen = ids.map((id) => seats.where((s) => s['id'] == id).firstOrNull).toList();
         if (chosen.any((s) => s == null)) return notFound('Seat');
         if (chosen.any((s) => s!['status'] != 'available')) {
@@ -99,16 +112,20 @@ class FakeBackend {
           'owner': user,
           'total_cents': chosen.fold<int>(0, (sum, s) => sum + (s!['price_cents']! as int)),
           'created_at': DateTime.utc(2026, 11, 26, 15).toIso8601String(),
-          'items': [for (final s in chosen) {'seat_id': s!['id']!, 'price_cents': s['price_cents']!}],
+          'items': [
+            for (final s in chosen) {'seat_id': s!['id']!, 'price_cents': s['price_cents']!}
+          ],
         };
         orders.add(order);
         return json(_public(order), 201);
       }
       if (path.length == 1) {
-        final mine = orders.where((o) => o['owner'] == user).toList().reversed.map(_public).toList();
+        final mine =
+            orders.where((o) => o['owner'] == user).toList().reversed.map(_public).toList();
         return json({'items': mine, 'limit': 50, 'offset': 0});
       }
-      final order = orders.where((o) => o['id'] == int.tryParse(path[1]) && o['owner'] == user).firstOrNull;
+      final order =
+          orders.where((o) => o['id'] == int.tryParse(path[1]) && o['owner'] == user).firstOrNull;
       return order == null ? notFound('Order') : json(_public(order));
     }
     return notFound('Route');

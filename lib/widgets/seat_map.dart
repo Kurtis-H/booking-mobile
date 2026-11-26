@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../api/models.dart';
 import '../logic/format.dart';
@@ -60,7 +60,9 @@ class SeatMap extends StatelessWidget {
                           child: Text(
                             seat.label.split('-').last,
                             style: TextStyle(
-                              color: chosen.contains(seat.id) ? scheme.onPrimary : scheme.onPrimaryContainer,
+                              color: chosen.contains(seat.id)
+                                  ? scheme.onPrimary
+                                  : scheme.onPrimaryContainer,
                             ),
                           ),
                         ),

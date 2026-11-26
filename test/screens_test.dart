@@ -1,6 +1,6 @@
 import 'package:booking_mobile/app.dart';
 import 'package:booking_mobile/session.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/fake_backend.dart';
@@ -121,7 +121,8 @@ void main() {
     });
 
     testWidgets('loads more seats on request', (tester) async {
-      await pumpApp(tester, backend: FakeBackend(events: 1, seatsPerEvent: 130), home: eventHome(1));
+      await pumpApp(tester,
+          backend: FakeBackend(events: 1, seatsPerEvent: 130), home: eventHome(1));
       await tester.scrollUntilVisible(find.text('Show more seats'), 300);
       await tester.tap(find.text('Show more seats'));
       await tester.pumpAndSettle();
@@ -201,7 +202,12 @@ void main() {
     await tester.pump();
     expect(
       tester.getSemantics(find.bySemanticsLabel(r'Seat R1-1, $25.00')),
-      matchesSemantics(label: r'Seat R1-1, $25.00', isButton: true, isSelected: true, hasSelectedState: true, hasTapAction: true),
+      matchesSemantics(
+          label: r'Seat R1-1, $25.00',
+          isButton: true,
+          isSelected: true,
+          hasSelectedState: true,
+          hasTapAction: true),
     );
     await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
     await expectLater(tester, meetsGuideline(textContrastGuideline));

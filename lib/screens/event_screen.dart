@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../api/booking_api.dart';
 import '../api/models.dart';
@@ -126,7 +126,8 @@ class _EventScreenState extends State<EventScreen> {
       appBar: AppBar(title: Text(event?.name ?? 'Event')),
       body: () {
         if (_loading && event == null) return const LoadingView(label: 'Loading event…');
-        if (_loadError != null && event == null) return ErrorView(error: _loadError!, onRetry: _reload);
+        if (_loadError != null && event == null)
+          return ErrorView(error: _loadError!, onRetry: _reload);
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [

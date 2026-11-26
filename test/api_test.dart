@@ -20,7 +20,12 @@ void main() {
     late http.Request sent;
     final api = apiReturning(
       http.Response(
-        jsonEncode({'id': 1, 'total_cents': 100, 'created_at': '2026-11-26T15:00:00Z', 'items': <Object>[]}),
+        jsonEncode({
+          'id': 1,
+          'total_cents': 100,
+          'created_at': '2026-11-26T15:00:00Z',
+          'items': <Object>[]
+        }),
         201,
       ),
       seen: (r) => sent = r,
@@ -28,25 +33,37 @@ void main() {
     await api.createOrder([4, 5], 'k');
     expect(sent.headers['X-API-Key'], 'k');
     expect(sent.headers['Content-Type'], startsWith('application/json'));
-    expect(jsonDecode(sent.body), {'seat_ids': [4, 5]});
+    expect(jsonDecode(sent.body), {
+      'seat_ids': [4, 5]
+    });
   });
 
   test('turns detail into the message and reads Retry-After', () async {
-    final api = apiReturning(http.Response(jsonEncode({'detail': 'slow down'}), 429, headers: {'retry-after': '12'}));
+    final api = apiReturning(
+        http.Response(jsonEncode({'detail': 'slow down'}), 429, headers: {'retry-after': '12'}));
     await expectLater(
       api.listOrders('k'),
-      throwsA(isA<ApiException>()
-          .having((e) => e.statusCode, 'status', 429)
-          .having((e) => e.message, 'message', 'slow down')
-          .having((e) => e.retryAfterSeconds, 'retryAfter', 12)),
+      throwsA(
+        isA<ApiException>()
+            .having((e) => e.statusCode, 'status', 429)
+            .having((e) => e.message, 'message', 'slow down')
+            .having((e) => e.retryAfterSeconds, 'retryAfter', 12),
+      ),
     );
   });
 
   test('summarises validation errors', () async {
-    final api = apiReturning(http.Response(jsonEncode({'detail': <Object>[{'loc': <Object>[]}]}), 422));
+    final api = apiReturning(http.Response(
+        jsonEncode({
+          'detail': <Object>[
+            {'loc': <Object>[]}
+          ]
+        }),
+        422));
     await expectLater(
       api.getEvent(1),
-      throwsA(isA<ApiException>().having((e) => e.message, 'message', 'Some of the details sent were not valid.')),
+      throwsA(isA<ApiException>()
+          .having((e) => e.message, 'message', 'Some of the details sent were not valid.')),
     );
   });
 
@@ -59,8 +76,10 @@ void main() {
   });
 
   test('network failures become offline errors', () async {
-    final api = BookingApi(baseUrl: 'http://x', client: MockClient((_) => throw http.ClientException('down')));
-    await expectLater(api.getEvent(1), throwsA(isA<ApiException>().having((e) => e.isOffline, 'offline', true)));
+    final api = BookingApi(
+        baseUrl: 'http://x', client: MockClient((_) => throw http.ClientException('down')));
+    await expectLater(
+        api.getEvent(1), throwsA(isA<ApiException>().having((e) => e.isOffline, 'offline', true)));
   });
 
   test('pages through events and seats', () async {

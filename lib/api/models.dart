@@ -31,9 +31,8 @@ class EventPage {
   const EventPage({required this.items, required this.total});
 
   factory EventPage.fromJson(Json json) => EventPage(
-        items: (json['items'] as List<dynamic>)
-            .map((e) => EventSummary.fromJson(e as Json))
-            .toList(),
+        items:
+            (json['items'] as List<dynamic>).map((e) => EventSummary.fromJson(e as Json)).toList(),
         total: json['total'] as int,
       );
 
@@ -86,9 +85,7 @@ class Order {
         id: json['id'] as int,
         totalCents: json['total_cents'] as int,
         createdAt: DateTime.parse(json['created_at'] as String),
-        items: (json['items'] as List<dynamic>)
-            .map((e) => OrderItem.fromJson(e as Json))
-            .toList(),
+        items: (json['items'] as List<dynamic>).map((e) => OrderItem.fromJson(e as Json)).toList(),
       );
 
   final int id;

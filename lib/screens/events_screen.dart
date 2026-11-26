@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../api/models.dart';
 import '../logic/format.dart';
@@ -27,8 +27,9 @@ class _EventsScreenState extends State<EventsScreen> {
     _future ??= _load();
   }
 
-  Future<EventPage> _load() =>
-      SessionScope.of(context).api.listEvents(limit: eventsPerPage, offset: (_page - 1) * eventsPerPage);
+  Future<EventPage> _load() => SessionScope.of(context)
+      .api
+      .listEvents(limit: eventsPerPage, offset: (_page - 1) * eventsPerPage);
 
   void _goTo(int page) => setState(() {
         _page = page;
