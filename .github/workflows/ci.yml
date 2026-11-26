@@ -118,12 +118,9 @@ jobs:
           script: |
             # Don't let a slow system app's "isn't responding" dialog cover the screen.
             adb shell settings put global hide_error_dialogs 1 || true
-            timeout 10m flutter test integration_test --dart-define=API_URL=http://10.0.2.2:8000 -d emulator-5554 || { echo '--- API health'; curl -sS -m 5 localhost:8000/health; echo; echo '--- API log'; tail -n 60 api.log; exit 1; }
+            ./tool/run_integration_tests.sh
             adb install -r build/app/outputs/flutter-apk/app-profile.apk
-            adb shell monkey -p dev.kurtish.booking_mobile -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
-            sleep 15
-            adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1 && adb shell cat /sdcard/ui.xml | tr '>' '\n' | grep -oE 'text="[^"]+"|content-desc="[^"]+"|resource-id="[^"]+"' | head -40 || true
-            adb logcat -d -s flutter:V AndroidRuntime:E | tail -30 || true
+            timeout 4m maestro test .maestro/common/warm_up.yaml || echo "warm-up didn't finish; carrying on"
             timeout 12m maestro test .maestro --format junit --output maestro-report.xml --test-output-dir maestro-output
       - uses: actions/upload-artifact@v4
         if: always()

@@ -1,0 +1,11 @@
+# Not a test. The first flow on a fresh emulator also pays for Maestro's
+# driver starting and the app's first cold start; this absorbs that so the
+# real flows start from a warm device. CI ignores its result.
+appId: dev.kurtish.booking_mobile
+---
+- launchApp:
+    clearState: true
+- runFlow: dismiss_system_dialogs.yaml
+- extendedWaitUntil:
+    visible: "Upcoming events"
+    timeout: 120000
