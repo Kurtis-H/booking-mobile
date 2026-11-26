@@ -106,17 +106,22 @@ jobs:
           target: google_apis
           arch: x86_64
           disable-animations: true
+          # GitHub's Linux runners have 4 cores and 16 GB; the defaults (2 cores,
+          # 2 GB) left system apps too slow to respond.
+          cores: 4
+          ram-size: 4096M
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          # Each stage has its own time limit, so a hang fails in minutes.
           script: |
-            flutter test integration_test --dart-define=API_URL=http://10.0.2.2:8000 -d emulator-5554
             # Don't let a slow system app's "isn't responding" dialog cover the screen.
             adb shell settings put global hide_error_dialogs 1 || true
+            timeout 15m flutter test integration_test --dart-define=API_URL=http://10.0.2.2:8000 -d emulator-5554
             adb install -r build/app/outputs/flutter-apk/app-profile.apk
             adb shell monkey -p dev.kurtish.booking_mobile -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
             sleep 15
             adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1 && adb shell cat /sdcard/ui.xml | tr '>' '\n' | grep -oE 'text="[^"]+"|content-desc="[^"]+"|resource-id="[^"]+"' | head -40 || true
             adb logcat -d -s flutter:V AndroidRuntime:E | tail -30 || true
-            maestro test .maestro --format junit --output maestro-report.xml --test-output-dir maestro-output
+            timeout 12m maestro test .maestro --format junit --output maestro-report.xml --test-output-dir maestro-output
       - uses: actions/upload-artifact@v4
         if: always()
         with:
