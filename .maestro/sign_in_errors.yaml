@@ -12,7 +12,7 @@ name: Sign-in errors
     text: "Sign in"
     index: 1
 - assertVisible: "Enter an API key."
-- tapOn: "API key"
+- tapOn: {id: "api-key-field"}
 - inputText: "key-not-real"
 - hideKeyboard
 - tapOn:

@@ -42,18 +42,21 @@ class _SignInScreenState extends State<SignInScreen> {
         body: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            TextField(
-              key: const ValueKey('api-key-field'),
-              controller: _key,
-              obscureText: true,
-              autocorrect: false,
-              enableSuggestions: false,
-              decoration: InputDecoration(
-                labelText: 'API key',
-                border: const OutlineInputBorder(),
-                errorText: _error,
+            Semantics(
+              identifier: 'api-key-field',
+              child: TextField(
+                key: const ValueKey('api-key-field'),
+                controller: _key,
+                obscureText: true,
+                autocorrect: false,
+                enableSuggestions: false,
+                decoration: InputDecoration(
+                  labelText: 'API key',
+                  border: const OutlineInputBorder(),
+                  errorText: _error,
+                ),
+                onSubmitted: _busy ? null : _attempt,
               ),
-              onSubmitted: _busy ? null : _attempt,
             ),
             const SizedBox(height: 16),
             FilledButton(

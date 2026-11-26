@@ -12,7 +12,8 @@ tags: [smoke]
 - tapOn: "Sign in"
 - tapOn: "Use the demo account"
 - assertVisible: "Sign out"
-- tapOn: "Event 2"
+- tapOn:
+    id: "event-2"
 - assertVisible: "Choose your seats"
 - tapOn:
     id: "seat-R1-1"

@@ -112,17 +112,22 @@ class _EventTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final soldOut = event.availableSeats == 0;
-    return ListTile(
-      key: ValueKey('event-${event.id}'),
-      title: Text(event.name),
-      subtitle: Text('${event.venue}\n${formatDateTime(event.startsAt)}'),
-      isThreeLine: true,
-      trailing: Text(
-        soldOut ? 'Sold out' : '${pluralize(event.availableSeats, 'seat')} left',
-        style: soldOut ? TextStyle(color: Theme.of(context).colorScheme.error) : null,
+    // The identifier becomes the Android resource-id, so UI tests can find a
+    // card without matching its whole merged label.
+    return Semantics(
+      identifier: 'event-${event.id}',
+      child: ListTile(
+        key: ValueKey('event-${event.id}'),
+        title: Text(event.name),
+        subtitle: Text('${event.venue}\n${formatDateTime(event.startsAt)}'),
+        isThreeLine: true,
+        trailing: Text(
+          soldOut ? 'Sold out' : '${pluralize(event.availableSeats, 'seat')} left',
+          style: soldOut ? TextStyle(color: Theme.of(context).colorScheme.error) : null,
+        ),
+        onTap: () => Navigator.of(context)
+            .push(MaterialPageRoute<void>(builder: (_) => EventScreen(eventId: event.id))),
       ),
-      onTap: () => Navigator.of(context)
-          .push(MaterialPageRoute<void>(builder: (_) => EventScreen(eventId: event.id))),
     );
   }
 }

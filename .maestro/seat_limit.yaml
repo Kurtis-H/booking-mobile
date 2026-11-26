@@ -7,7 +7,7 @@ name: Ten-seat limit
 - extendedWaitUntil:
     visible: "Upcoming events"
     timeout: 60000
-- tapOn: "Event 5"
+- tapOn: {id: "event-5"}
 - assertVisible: "Choose your seats"
 - tapOn: {id: "seat-R1-1"}
 - tapOn: {id: "seat-R1-2"}
