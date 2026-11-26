@@ -1,0 +1,17 @@
+# Start the app from a clean state and wait for the first screen.
+#
+# Launching is setup, not what the flows test, and on CI emulators a fresh
+# launch occasionally never shows the first screen. Relaunch up to twice
+# before giving up; the flows' own checks are never retried.
+appId: dev.kurtish.booking_mobile
+---
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+          stopApp: true
+      - runFlow: dismiss_system_dialogs.yaml
+      - extendedWaitUntil:
+          visible: "Upcoming events"
+          timeout: 60000
