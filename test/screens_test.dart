@@ -209,6 +209,8 @@ void main() {
           hasSelectedState: true,
           hasTapAction: true),
     );
+    // Let the button finish animating to its enabled colours: check what users see.
+    await tester.pumpAndSettle();
     await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
     await expectLater(tester, meetsGuideline(textContrastGuideline));
     handle.dispose();

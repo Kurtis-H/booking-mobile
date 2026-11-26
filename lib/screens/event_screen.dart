@@ -126,8 +126,9 @@ class _EventScreenState extends State<EventScreen> {
       appBar: AppBar(title: Text(event?.name ?? 'Event')),
       body: () {
         if (_loading && event == null) return const LoadingView(label: 'Loading event…');
-        if (_loadError != null && event == null)
+        if (_loadError != null && event == null) {
           return ErrorView(error: _loadError!, onRetry: _reload);
+        }
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
