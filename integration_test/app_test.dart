@@ -92,7 +92,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('seat-S-1')));
     await tester.pump();
 
-    final orderBody = jsonEncode({'seat_ids': [event.seatIds.first]});
+    final orderBody = jsonEncode({
+      'seat_ids': [event.seatIds.first]
+    });
     final ordersUrl = Uri.parse('$base/orders');
     final rival = await withDeadline(
       'rival POST /orders',
