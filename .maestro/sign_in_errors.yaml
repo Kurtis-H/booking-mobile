@@ -1,0 +1,18 @@
+# The sign-in screen explains what went wrong.
+appId: dev.kurtish.booking_mobile
+name: Sign-in errors
+---
+- launchApp:
+    clearState: true
+- tapOn: "Sign in"
+- tapOn:
+    text: "Sign in"
+    index: 1
+- assertVisible: "Enter an API key."
+- tapOn: "API key"
+- inputText: "key-not-real"
+- hideKeyboard
+- tapOn:
+    text: "Sign in"
+    index: 1
+- assertVisible: "That API key wasn't recognised."

@@ -1,0 +1,21 @@
+# You can't pick more than 10 seats in one order.
+appId: dev.kurtish.booking_mobile
+name: Ten-seat limit
+---
+- launchApp:
+    clearState: true
+- tapOn: "Event 5"
+- assertVisible: "Choose your seats"
+- tapOn: {id: "seat-R1-1"}
+- tapOn: {id: "seat-R1-2"}
+- tapOn: {id: "seat-R1-3"}
+- tapOn: {id: "seat-R1-4"}
+- tapOn: {id: "seat-R1-5"}
+- tapOn: {id: "seat-R1-6"}
+- tapOn: {id: "seat-R1-7"}
+- tapOn: {id: "seat-R1-8"}
+- tapOn: {id: "seat-R1-9"}
+- tapOn: {id: "seat-R1-10"}
+- tapOn: {id: "seat-R1-11"}
+- assertVisible: "You can buy up to 10 seats in one order."
+- assertVisible: "Sign in to buy 10 seats"
