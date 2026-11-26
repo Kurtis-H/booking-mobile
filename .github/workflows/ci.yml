@@ -77,7 +77,8 @@ jobs:
         run: |
           pip install "git+https://github.com/Kurtis-H/api-performance-lab"
           python -m app.seed --events 30 --seats 40 --users 60
-          RATE_LIMIT_PER_MINUTE=600 nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > api.log 2>&1 &
+          # Unbuffered, so api.log shows every request when a job fails.
+          PYTHONUNBUFFERED=1 RATE_LIMIT_PER_MINUTE=600 nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > api.log 2>&1 &
           for i in $(seq 1 60); do curl -sf localhost:8000/health && exit 0; sleep 1; done
           cat api.log; exit 1
       - uses: actions/setup-java@v6

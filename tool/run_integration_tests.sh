@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Runs the integration tests on the emulator.
 #
-# Retries once, but only when no test ran at all: on a cold CI emulator the
-# Flutter tool sometimes installs the app and never starts the tests. A test
-# that runs and fails is never retried.
+# Retries once, but only when no test reported a failure: on CI emulators the
+# Flutter tool sometimes never starts the tests, or loses the app partway
+# through, so the run ends without any result for some tests. A test that
+# runs and fails (a ❌ line) is never retried.
 set -uo pipefail
 
 run() {
@@ -12,13 +13,19 @@ run() {
   return "${PIPESTATUS[0]}"
 }
 
+diagnose() {
+  echo '--- App log'; adb logcat -d -s flutter:V AndroidRuntime:E ActivityManager:I | tail -n 40
+  echo '--- API health'; curl -sS -m 5 localhost:8000/health; echo
+  echo '--- API log'; tail -n 60 api.log
+}
+
 run && exit 0
-if grep -qE '^(✅|❌) ' integration.log; then
-  echo "--- Tests ran and failed; not retrying."
+if grep -qE '^❌ ' integration.log; then
+  echo "--- A test failed; not retrying."
 else
-  echo "--- No test ran (tooling didn't start them); retrying once."
+  echo "--- The run ended without a failing test (the tool lost the app); retrying once."
+  diagnose
   run && exit 0
 fi
-echo '--- API health'; curl -sS -m 5 localhost:8000/health; echo
-echo '--- API log'; tail -n 60 api.log
+diagnose
 exit 1
