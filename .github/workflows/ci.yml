@@ -30,7 +30,7 @@ jobs:
         run: flutter test --coverage
       - name: At least 80% line coverage
         run: dart run tool/check_coverage.dart coverage/lcov.info 80
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: golden-failures
@@ -122,7 +122,7 @@ jobs:
             adb install -r build/app/outputs/flutter-apk/app-profile.apk
             timeout 4m maestro test .maestro/common/warm_up.yaml || echo "warm-up didn't finish; carrying on"
             timeout 12m maestro test .maestro --format junit --output maestro-report.xml --test-output-dir maestro-output
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: emulator-results
