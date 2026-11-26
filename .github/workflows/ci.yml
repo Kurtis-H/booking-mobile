@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
@@ -70,7 +70,7 @@ jobs:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/booking
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Start the booking API (api-performance-lab)
@@ -80,7 +80,7 @@ jobs:
           RATE_LIMIT_PER_MINUTE=600 nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > api.log 2>&1 &
           for i in $(seq 1 60); do curl -sf localhost:8000/health && exit 0; sleep 1; done
           cat api.log; exit 1
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
@@ -118,12 +118,9 @@ jobs:
           script: |
             # Don't let a slow system app's "isn't responding" dialog cover the screen.
             adb shell settings put global hide_error_dialogs 1 || true
-            timeout 10m flutter test integration_test --dart-define=API_URL=http://10.0.2.2:8000 -d emulator-5554 || { echo '--- API health'; curl -sS -m 5 localhost:8000/health; echo; echo '--- API log'; tail -n 60 api.log; exit 1; }
+            ./tool/run_integration_tests.sh
             adb install -r build/app/outputs/flutter-apk/app-profile.apk
-            adb shell monkey -p dev.kurtish.booking_mobile -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
-            sleep 15
-            adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1 && adb shell cat /sdcard/ui.xml | tr '>' '\n' | grep -oE 'text="[^"]+"|content-desc="[^"]+"|resource-id="[^"]+"' | head -40 || true
-            adb logcat -d -s flutter:V AndroidRuntime:E | tail -30 || true
+            timeout 4m maestro test .maestro/common/warm_up.yaml || echo "warm-up didn't finish; carrying on"
             timeout 12m maestro test .maestro --format junit --output maestro-report.xml --test-output-dir maestro-output
       - uses: actions/upload-artifact@v7
         if: always()
