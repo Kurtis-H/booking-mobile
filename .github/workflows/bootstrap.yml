@@ -13,15 +13,21 @@ permissions:
 
 jobs:
   bootstrap:
-    if: ${{ hashFiles('android/app/src/main/AndroidManifest.xml') == '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Already generated?
+        id: check
+        run: |
+          if [ -f android/app/src/main/AndroidManifest.xml ]; then echo "done=true" >> "$GITHUB_OUTPUT"; fi
       - uses: subosito/flutter-action@v2
+        if: steps.check.outputs.done != 'true'
         with:
           channel: stable
       - run: flutter --version
+        if: steps.check.outputs.done != 'true'
       - name: Generate the Android project
+        if: steps.check.outputs.done != 'true'
         run: |
           flutter create --platforms=android --org dev.kurtish --project-name booking_mobile .
           rm -f test/widget_test.dart
@@ -32,18 +38,24 @@ jobs:
             sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/>\n    <application|' "$manifest"
           head -12 "$manifest"
       - name: Newest compatible dependencies
+        if: steps.check.outputs.done != 'true'
         run: flutter pub upgrade --major-versions
       - name: Apply fixes and format
+        if: steps.check.outputs.done != 'true'
         run: |
           dart fix --apply
           dart format lib test integration_test tool
       - name: Analyzer report (not fatal here)
+        if: steps.check.outputs.done != 'true'
         run: flutter analyze || true
       - name: Generate golden images
+        if: steps.check.outputs.done != 'true'
         run: flutter test --update-goldens test/seat_map_golden_test.dart
       - name: Run the tests (report only)
+        if: steps.check.outputs.done != 'true'
         run: flutter test || true
       - name: Check the Dart drills from the practice page
+        if: steps.check.outputs.done != 'true'
         run: |
           mkdir -p /tmp/drills && cd /tmp/drills
           cat > d1.dart <<'D'
@@ -83,6 +95,7 @@ jobs:
           D
           for f in d1 d2 d3 d4; do echo "== $f: $(dart run $f.dart | tr '\n' ' ')"; done
       - name: Commit generated files
+        if: steps.check.outputs.done != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
