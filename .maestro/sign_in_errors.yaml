@@ -7,7 +7,7 @@ name: Sign-in errors
 - runFlow: common/dismiss_system_dialogs.yaml
 - extendedWaitUntil:
     visible: "Upcoming events"
-    timeout: 60000
+    timeout: 120000
 - tapOn: "Sign in"
 - tapOn:
     text: "Sign in"

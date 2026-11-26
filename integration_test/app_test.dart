@@ -28,6 +28,23 @@ Future<void> settle(WidgetTester tester) {
   return tester.pumpAndSettle(step, EnginePhase.sendSemanticsUpdate, const Duration(seconds: 30));
 }
 
+/// pumpAndSettle stops when no frames are pending, which can happen while the
+/// app is still waiting on the network. Keep pumping until [finder] matches
+/// what we expect, or fail after [limit] with a clear message.
+Future<void> pumpUntil(
+  WidgetTester tester,
+  Finder finder,
+  Matcher matcher, {
+  Duration limit = const Duration(seconds: 20),
+}) async {
+  final end = DateTime.now().add(limit);
+  while (DateTime.now().isBefore(end)) {
+    await tester.pump(const Duration(milliseconds: 200));
+    if (matcher.matches(finder, {})) return;
+  }
+  expect(finder, matcher, reason: 'still not true after ${limit.inSeconds}s');
+}
+
 Map<String, String> headers(String key) {
   return {'X-API-Key': key, 'Content-Type': 'application/json'};
 }
@@ -79,8 +96,7 @@ void main() {
     expect(find.text(r'Total: $70.00'), findsOneWidget);
 
     await tester.tap(find.text('Buy 2 seats'));
-    await settle(tester);
-    expect(find.byKey(const ValueKey('order-confirmation')), findsOneWidget);
+    await pumpUntil(tester, find.byKey(const ValueKey('order-confirmation')), findsOneWidget);
     expect(find.text(r'$70.00'), findsWidgets);
   });
 
@@ -103,8 +119,9 @@ void main() {
     expect(rival.statusCode, 201, reason: rival.body);
 
     await tester.tap(find.text('Buy 1 seat'));
-    await settle(tester);
-    expect(find.textContaining('Someone just took one of those seats'), findsOneWidget);
-    expect(find.byKey(const ValueKey('seat-S-1')), findsNothing);
+    final message = find.textContaining('Someone just took one of those seats');
+    await pumpUntil(tester, message, findsOneWidget);
+    // The app reloads the seat map; the taken seat must disappear.
+    await pumpUntil(tester, find.byKey(const ValueKey('seat-S-1')), findsNothing);
   });
 }
