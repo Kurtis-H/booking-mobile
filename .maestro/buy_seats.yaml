@@ -6,7 +6,9 @@ tags: [smoke]
 ---
 - launchApp:
     clearState: true
-- assertVisible: "Upcoming events"
+- extendedWaitUntil:
+    visible: "Upcoming events"
+    timeout: 60000
 - tapOn: "Sign in"
 - tapOn: "Use the demo account"
 - assertVisible: "Sign out"

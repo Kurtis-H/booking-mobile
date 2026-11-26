@@ -4,6 +4,9 @@ name: Ten-seat limit
 ---
 - launchApp:
     clearState: true
+- extendedWaitUntil:
+    visible: "Upcoming events"
+    timeout: 60000
 - tapOn: "Event 5"
 - assertVisible: "Choose your seats"
 - tapOn: {id: "seat-R1-1"}

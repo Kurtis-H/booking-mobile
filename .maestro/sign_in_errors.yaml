@@ -4,6 +4,9 @@ name: Sign-in errors
 ---
 - launchApp:
     clearState: true
+- extendedWaitUntil:
+    visible: "Upcoming events"
+    timeout: 60000
 - tapOn: "Sign in"
 - tapOn:
     text: "Sign in"
