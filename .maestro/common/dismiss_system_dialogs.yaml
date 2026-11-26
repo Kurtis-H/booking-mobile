@@ -1,0 +1,9 @@
+# Slow CI emulators sometimes show "<app> isn't responding" for a system app.
+# It isn't our app's problem, so tap "Wait" and carry on.
+appId: dev.kurtish.booking_mobile
+---
+- runFlow:
+    when:
+      visible: ".*isn't responding"
+    commands:
+      - tapOn: "Wait"

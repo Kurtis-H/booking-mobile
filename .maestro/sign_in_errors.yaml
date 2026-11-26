@@ -4,6 +4,7 @@ name: Sign-in errors
 ---
 - launchApp:
     clearState: true
+- runFlow: common/dismiss_system_dialogs.yaml
 - extendedWaitUntil:
     visible: "Upcoming events"
     timeout: 60000
