@@ -62,14 +62,19 @@ class Seat {
 }
 
 class OrderItem {
-  const OrderItem({required this.seatId, required this.priceCents});
+  const OrderItem({required this.seatId, required this.label, required this.priceCents});
 
   factory OrderItem.fromJson(Json json) => OrderItem(
         seatId: json['seat_id'] as int,
+        // Older API versions don't send the label; fall back to the id.
+        label: json['label'] as String? ?? '#${json['seat_id']}',
         priceCents: json['price_cents'] as int,
       );
 
   final int seatId;
+
+  /// The seat as the buyer saw it, such as "R3-12".
+  final String label;
   final int priceCents;
 }
 

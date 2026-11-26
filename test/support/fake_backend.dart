@@ -113,7 +113,8 @@ class FakeBackend {
           'total_cents': chosen.fold<int>(0, (sum, s) => sum + (s!['price_cents']! as int)),
           'created_at': DateTime.utc(2026, 11, 26, 15).toIso8601String(),
           'items': [
-            for (final s in chosen) {'seat_id': s!['id']!, 'price_cents': s['price_cents']!}
+            for (final s in chosen)
+              {'seat_id': s!['id']!, 'label': s['label']!, 'price_cents': s['price_cents']!}
           ],
         };
         orders.add(order);
