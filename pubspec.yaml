@@ -10,8 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   http: ^1.2.0
-
-  material_ui: any
+  material_ui: ^1.11.1
 dev_dependencies:
   flutter_test:
     sdk: flutter

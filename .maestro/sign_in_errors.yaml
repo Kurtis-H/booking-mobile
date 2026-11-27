@@ -14,4 +14,4 @@ name: Sign-in errors
 - tapOn:
     text: "Sign in"
     index: 1
-- assertVisible: "That API key wasn't recognised."
+- assertVisible: "That API key wasn't recognized."

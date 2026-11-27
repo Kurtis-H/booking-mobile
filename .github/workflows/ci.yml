@@ -63,6 +63,35 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter build apk --debug
+      - name: A release build without a release key fails, rather than using the debug key
+        run: |
+          if flutter build apk --release > release-no-key.log 2>&1; then
+            echo "::error::release build succeeded without android/key.properties"; exit 1
+          fi
+          grep -i "signing" release-no-key.log || { cat release-no-key.log; exit 1; }
+      - name: A throwaway release key, made for this run only
+        working-directory: android
+        run: |
+          pass=$(openssl rand -hex 16)
+          keytool -genkeypair -noprompt -keystore app/ci-release.jks -storepass "$pass" -keypass "$pass" \
+            -alias ci -keyalg RSA -keysize 2048 -validity 1 -dname "CN=booking-mobile CI"
+          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=ci\nstoreFile=ci-release.jks\n' \
+            "$pass" "$pass" > key.properties
+      - run: flutter build apk --release
+      - name: The release APK is signed with the release key and carries no demo key
+        run: |
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$apksigner" verify --print-certs "$apk" | tee signer.txt
+          grep -q "CN=booking-mobile CI" signer.txt
+          if grep -q "Android Debug" signer.txt; then
+            echo "::error::release APK is signed with the debug certificate"; exit 1
+          fi
+          for lib in $(unzip -Z1 "$apk" | grep '/libapp.so$'); do
+            if unzip -p "$apk" "$lib" | grep -aq "key-user-1"; then
+              echo "::error::demo key found in $lib"; exit 1
+            fi
+          done
 
   emulator:
     name: Integration tests and Maestro on an emulator

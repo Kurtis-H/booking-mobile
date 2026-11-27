@@ -151,7 +151,7 @@ void main() {
       await tester.enterText(find.byKey(const ValueKey('api-key-field')), 'key-nobody');
       await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
       await tester.pumpAndSettle();
-      expect(find.text("That API key wasn't recognised."), findsOneWidget);
+      expect(find.text("That API key wasn't recognized."), findsOneWidget);
     });
 
     testWidgets('signs in, lists your orders, opens one, signs out', (tester) async {
