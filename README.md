@@ -22,6 +22,7 @@ A Flutter (Android) app for buying event seats, built on the booking API from [a
 | Accessibility | `meetsGuideline`, semantics matchers | Screen-reader labels and states, 48dp tap targets, WCAG text contrast |
 | Integration | `integration_test` on an Android emulator | The real app against the **real** API and Postgres, including a seat sold to someone else mid-purchase |
 | End to end | Maestro on the same emulator | Black-box flows a tester would write: buy seats, sign-in errors, the 10-seat limit |
+| Consumer contract | Pact (V4 file format) | What this app needs from the API: 9 interactions checked against the app's own client. The API's CI replays them against the real API |
 
 Unit and widget tests need at least 80% line coverage (`tool/check_coverage.dart`).
 
@@ -47,7 +48,7 @@ Sign in with a key from the seed data (`key-user-1` to `key-user-200`), or tap "
 
 Every push and pull request runs:
 
-* **Analyze, unit, widget and golden tests:** `dart format` check, `flutter analyze`, tests with the coverage gate, and a self-test of the integration-run script with fake `flutter` and `adb` commands
+* **Analyze, unit, widget and golden tests:** `dart format` check, `flutter analyze`, tests with the coverage gate (including the consumer contract, which must match the committed `pacts/` file), and a self-test of the integration-run script with fake `flutter` and `adb` commands
 * **Build the Android app:** a debug APK
 * **Integration tests and Maestro on an emulator:** starts Postgres and the booking API, boots an Android 14 emulator, runs `integration_test` through [`tool/run_integration_tests.sh`](tool/run_integration_tests.sh), then installs the APK and runs every Maestro flow
 * **CodeQL** for the workflows (CodeQL doesn't analyze Dart), and Dependabot for pub, Gradle and Actions
@@ -55,6 +56,14 @@ Every push and pull request runs:
 ## How this was built
 
 I wrote this without a local Flutter SDK, so GitHub Actions did the compiling: a one-off bootstrap workflow ran `flutter create` for the Android project, upgraded dependencies, generated the golden image and formatted the code, then committed the results back to the branch. Every later change was checked by CI on the pull request.
+
+## Consumer contract
+
+[`test/contract/booking_api_contract_test.dart`](test/contract/booking_api_contract_test.dart) runs the app's own `BookingApi` against a stub for each call the app makes. It checks the exact request sent (method, path, query, headers, body) and that the response parses, then writes [`pacts/booking-mobile-booking-api.json`](pacts/booking-mobile-booking-api.json). [api-performance-lab](https://github.com/Kurtis-H/api-performance-lab) replays that file against the real API with Pact's official verifier on every API change.
+
+* **Why not a Pact library for Dart?** `pact_dart` pins `http ^0.13` (this app uses `^1.2`), hasn't had a release in 19 months, and can't inject ids from provider states. So [`pact_writer.dart`](test/contract/pact_writer.dart) writes the standard Pact V4 file itself. The official verifier would reject a malformed file, so the API's job checks the format too.
+* **Consumer-specific on purpose.** This app shows `#<seat id>` when an order item has no label, so its contract doesn't require `label`. booking-web's does. If the API stopped sending labels, booking-web's contract would fail and this one would pass.
+* CI fails if the committed contract is out of date.
 
 ## When an emulator run gets stuck
 

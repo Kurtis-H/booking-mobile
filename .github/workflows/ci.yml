@@ -30,6 +30,16 @@ jobs:
         run: flutter test --coverage
       - name: At least 80% line coverage
         run: dart run tool/check_coverage.dart coverage/lcov.info 80
+      - name: The committed consumer contract is up to date
+        # The contract tests rewrite pacts/; api-performance-lab replays it from main.
+        run: |
+          if [ -n "$(git status --porcelain -- pacts/)" ]; then
+            git status --porcelain -- pacts/
+            git diff -- pacts/
+            echo "--- The contract the tests generated:"
+            cat pacts/booking-mobile-booking-api.json
+            exit 1
+          fi
       - name: Integration-run script reacts to passes, failures and hangs (no emulator)
         run: ./tool/test_run_integration_tests.sh
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
