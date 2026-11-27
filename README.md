@@ -47,16 +47,26 @@ Sign in with a key from the seed data (`key-user-1` to `key-user-200`), or tap "
 
 Every push and pull request runs:
 
-* **Analyze, unit, widget and golden tests:** `dart format` check, `flutter analyze`, tests with the coverage gate
+* **Analyze, unit, widget and golden tests:** `dart format` check, `flutter analyze`, tests with the coverage gate, and a self-test of the integration-run script with fake `flutter` and `adb` commands
 * **Build the Android app:** a debug APK
-* **Integration tests and Maestro on an emulator:** starts Postgres and the booking API, boots an Android 14 emulator, runs `integration_test`, then installs the APK and runs every Maestro flow
-* **CodeQL** for the workflows (CodeQL doesn't analyse Dart), and Dependabot for pub, Gradle and Actions
+* **Integration tests and Maestro on an emulator:** starts Postgres and the booking API, boots an Android 14 emulator, runs `integration_test` through [`tool/run_integration_tests.sh`](tool/run_integration_tests.sh), then installs the APK and runs every Maestro flow
+* **CodeQL** for the workflows (CodeQL doesn't analyze Dart), and Dependabot for pub, Gradle and Actions
 
 ## How this was built
 
 I wrote this without a local Flutter SDK, so GitHub Actions did the compiling: a one-off bootstrap workflow ran `flutter create` for the Android project, upgraded dependencies, generated the golden image and formatted the code, then committed the results back to the branch. Every later change was checked by CI on the pull request.
 
+## When an emulator run gets stuck
+
+Very rarely (once in 42 CI runs so far), an integration test on the CI emulator hangs instead of failing: [#14](https://github.com/Kurtis-H/booking-mobile/issues/14). So:
+
+* Each integration test marks the step it's on, and a [watchdog](integration_test/support/watchdog.dart) logs a `WATCHDOG:` line to logcat if one step takes over 60 s, with the frame scheduler's state.
+* The run script watches logcat for that line. It then saves a screenshot, frame stats, a thread dump and logcat into `diagnostics/` while the emulator is still stuck, prints a summary in the job log, and retries once. A run with a real test failure is never retried.
+
+## Planted bug for test-sensitivity runs
+
+[framework-showdown](https://github.com/Kurtis-H/framework-showdown) needs to prove its suites can fail. Building with `--dart-define=PLANTED_BUG=total` switches on one bug in [`lib/logic/planted_bug.dart`](lib/logic/planted_bug.dart): the order total counts only the first seat. It's off unless set at build time.
+
 ## Known gaps
 
-* Order details show seat ids, not labels, because the API's order response doesn't include labels yet (tracked in api-performance-lab).
 * Android only for now. Adding iOS means generating the iOS project and running the emulator job on a macOS runner (free for public repos), plus an iOS simulator for Maestro.
