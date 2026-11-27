@@ -53,7 +53,7 @@ class _OrderScreenState extends State<OrderScreen> {
                 for (final item in order.items)
                   ListTile(
                     dense: true,
-                    title: Text('Seat #${item.seatId}'),
+                    title: Text('Seat ${item.label}'),
                     trailing: Text(formatCents(item.priceCents)),
                   ),
                 const Divider(),

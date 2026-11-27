@@ -75,6 +75,7 @@ void main() {
 
       expect(find.byKey(const ValueKey('order-confirmation')), findsOneWidget);
       expect(find.text('Order #1'), findsOneWidget);
+      expect(find.text('Seat R1-3'), findsOneWidget);
       expect(find.text(r'$25.00'), findsWidgets);
       expect(app.backend.orders, hasLength(1));
     });
