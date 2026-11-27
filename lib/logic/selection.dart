@@ -1,4 +1,5 @@
 import '../api/models.dart';
+import 'planted_bug.dart';
 
 /// The API accepts at most 10 seats per order.
 const maxSeatsPerOrder = 10;
@@ -25,8 +26,17 @@ ToggleResult toggleSeat(List<int> selected, int seatId) {
 }
 
 /// Sum the prices of the selected seats. Unknown ids are ignored.
-int totalCents(List<Seat> seats, List<int> selected) {
+///
+/// [bug] is only for tests of the planted-bug switch; see planted_bug.dart.
+int totalCents(List<Seat> seats, List<int> selected, {String bug = plantedBug}) {
   final wanted = selected.toSet();
+  if (bug == 'total') {
+    // Planted on purpose for test-sensitivity runs.
+    for (final s in seats) {
+      if (wanted.contains(s.id)) return s.priceCents;
+    }
+    return 0;
+  }
   return seats.where((s) => wanted.contains(s.id)).fold(0, (sum, s) => sum + s.priceCents);
 }
 
