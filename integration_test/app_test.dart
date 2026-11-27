@@ -6,10 +6,13 @@ import 'dart:convert';
 import 'package:booking_mobile/api/booking_api.dart';
 import 'package:booking_mobile/app.dart';
 import 'package:booking_mobile/session.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:integration_test/integration_test.dart';
+
+import 'support/watchdog.dart';
 
 final base = BookingApi.defaultBaseUrl;
 
@@ -43,6 +46,27 @@ Future<void> pumpUntil(
     if (matcher.matches(finder, {})) return;
   }
   expect(finder, matcher, reason: 'still not true after ${limit.inSeconds}s');
+}
+
+/// If the emulator stops drawing frames, a frame stays scheduled but never
+/// arrives. That points at rendering rather than at the app or the network.
+String frameState() {
+  final binding = SchedulerBinding.instance;
+  return 'scheduler phase ${binding.schedulerPhase.name}, '
+      'frame scheduled ${binding.hasScheduledFrame}, '
+      'transient callbacks ${binding.transientCallbackCount}';
+}
+
+/// testWidgets with a watchdog that reports the step a stuck test is on.
+void watchedTest(String name, Future<void> Function(WidgetTester tester, Watchdog dog) body) {
+  testWidgets(name, (tester) async {
+    final dog = Watchdog(name, limit: Watchdog.configuredLimit, frameState: frameState);
+    try {
+      await body(tester, dog);
+    } finally {
+      dog.stop();
+    }
+  });
 }
 
 Map<String, String> headers(String key) {
@@ -84,44 +108,61 @@ Future<Session> signedIn(String key) async {
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('buys two seats against the real API', (tester) async {
-    final event = await newEvent(4);
-    final session = await signedIn('key-user-30');
-    await tester.pumpWidget(BookingApp(session: session, home: eventHome(event.id)));
-    await settle(tester);
+  watchedTest('buys two seats against the real API', (tester, dog) async {
+    final event = await dog.step('create the event', () => newEvent(4));
+    final session = await dog.step('sign in', () => signedIn('key-user-30'));
+    await dog.step('show the seat map', () async {
+      await tester.pumpWidget(BookingApp(session: session, home: eventHome(event.id)));
+      await settle(tester);
+    });
 
-    await tester.tap(find.byKey(const ValueKey('seat-S-1')));
-    await tester.tap(find.byKey(const ValueKey('seat-S-2')));
-    await tester.pump();
+    await dog.step('pick two seats', () async {
+      await tester.tap(find.byKey(const ValueKey('seat-S-1')));
+      await tester.tap(find.byKey(const ValueKey('seat-S-2')));
+      await tester.pump();
+    });
     expect(find.text(r'Total: $70.00'), findsOneWidget);
 
-    await tester.tap(find.text('Buy 2 seats'));
-    await pumpUntil(tester, find.byKey(const ValueKey('order-confirmation')), findsOneWidget);
+    await dog.step('buy and wait for the confirmation', () async {
+      await tester.tap(find.text('Buy 2 seats'));
+      await pumpUntil(tester, find.byKey(const ValueKey('order-confirmation')), findsOneWidget);
+    });
     expect(find.text(r'$70.00'), findsWidgets);
   });
 
-  testWidgets('loses a seat to another buyer and recovers', (tester) async {
-    final event = await newEvent(2);
-    final session = await signedIn('key-user-31');
-    await tester.pumpWidget(BookingApp(session: session, home: eventHome(event.id)));
-    await settle(tester);
-    await tester.tap(find.byKey(const ValueKey('seat-S-1')));
-    await tester.pump();
+  watchedTest('loses a seat to another buyer and recovers', (tester, dog) async {
+    final event = await dog.step('create the event', () => newEvent(2));
+    final session = await dog.step('sign in', () => signedIn('key-user-31'));
+    await dog.step('show the seat map', () async {
+      await tester.pumpWidget(BookingApp(session: session, home: eventHome(event.id)));
+      await settle(tester);
+    });
+    await dog.step('pick a seat', () async {
+      await tester.tap(find.byKey(const ValueKey('seat-S-1')));
+      await tester.pump();
+    });
 
     final orderBody = jsonEncode({
       'seat_ids': [event.seatIds.first]
     });
     final ordersUrl = Uri.parse('$base/orders');
-    final rival = await withDeadline(
-      'rival POST /orders',
-      http.post(ordersUrl, headers: headers('key-user-32'), body: orderBody),
+    final rival = await dog.step(
+      'rival buys the seat',
+      () => withDeadline(
+        'rival POST /orders',
+        http.post(ordersUrl, headers: headers('key-user-32'), body: orderBody),
+      ),
     );
     expect(rival.statusCode, 201, reason: rival.body);
 
-    await tester.tap(find.text('Buy 1 seat'));
-    final message = find.textContaining('Someone just took one of those seats');
-    await pumpUntil(tester, message, findsOneWidget);
+    await dog.step('buy and wait for the conflict message', () async {
+      await tester.tap(find.text('Buy 1 seat'));
+      final message = find.textContaining('Someone just took one of those seats');
+      await pumpUntil(tester, message, findsOneWidget);
+    });
     // The app reloads the seat map; the taken seat must disappear.
-    await pumpUntil(tester, find.byKey(const ValueKey('seat-S-1')), findsNothing);
+    await dog.step('wait for the seat map to reload', () async {
+      await pumpUntil(tester, find.byKey(const ValueKey('seat-S-1')), findsNothing);
+    });
   });
 }

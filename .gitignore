@@ -19,3 +19,7 @@ android/key.properties
 # Maestro / test output
 .maestro/screenshots/
 test/**/failures/
+
+# Integration run output
+integration-*.log
+diagnostics/
