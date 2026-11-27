@@ -2,6 +2,7 @@ import 'package:booking_mobile/api/booking_api.dart';
 import 'package:booking_mobile/api/models.dart';
 import 'package:booking_mobile/logic/errors.dart';
 import 'package:booking_mobile/logic/format.dart';
+import 'package:booking_mobile/logic/planted_bug.dart';
 import 'package:booking_mobile/logic/selection.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -63,6 +64,19 @@ void main() {
     expect(totalCents(seats, [1, 3]), 5500);
     expect(totalCents(seats, []), 0);
     expect(totalCents(seats, [2, 404]), 2500);
+  });
+
+  test('the planted bug switch is off in normal builds', () {
+    final seats = [seat(1, 'R1-1', 2500), seat(2, 'R1-2', 3000)];
+    expect(plantedBug, isEmpty);
+    expect(totalCents(seats, [1, 2]), 5500);
+  });
+
+  test("the planted 'total' bug counts only the first seat", () {
+    final seats = [seat(1, 'R1-1', 2500), seat(2, 'R1-2', 3000)];
+    expect(totalCents(seats, [1, 2], bug: 'total'), 2500);
+    expect(totalCents(seats, [], bug: 'total'), 0);
+    expect(totalCents(seats, [1, 2], bug: 'other'), 5500);
   });
 
   test('groupByRow keeps first-seen row order', () {
