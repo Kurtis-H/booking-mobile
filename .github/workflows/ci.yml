@@ -121,7 +121,7 @@ jobs:
           script: |
             # Don't let a slow system app's "isn't responding" dialog cover the screen.
             adb shell settings put global hide_error_dialogs 1 || true
-            ./tool/run_integration_tests.sh
+            WATCHDOG_SECONDS=1 ./tool/run_integration_tests.sh || echo "EXPERIMENT: expected to be stuck"
             adb install -r build/app/outputs/flutter-apk/app-profile.apk
             timeout 4m maestro test .maestro/common/warm_up.yaml || echo "warm-up didn't finish; carrying on"
             timeout 12m maestro test .maestro --format junit --output maestro-report.xml --test-output-dir maestro-output || { echo '--- On screen'; adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1; adb shell cat /sdcard/ui.xml | tr '>' '\n' | grep -oE 'text="[^"]+"|content-desc="[^"]+"|resource-id="[^"]+"' | head -40; echo '--- Top activity'; adb shell dumpsys activity activities | grep -E 'ResumedActivity' | head -3; exit 1; }
