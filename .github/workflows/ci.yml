@@ -68,7 +68,7 @@ jobs:
           if flutter build apk --release > release-no-key.log 2>&1; then
             echo "::error::release build succeeded without android/key.properties"; exit 1
           fi
-          grep -i "signing" release-no-key.log || { cat release-no-key.log; exit 1; }
+          grep -q "validateSigningRelease" release-no-key.log || { cat release-no-key.log; exit 1; }
       - name: A throwaway release key, made for this run only
         working-directory: android
         run: |
