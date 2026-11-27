@@ -67,14 +67,21 @@ class Interaction {
     return {
       'description': description,
       'pending': false,
-      if (state != null) 'providerStates': [
-        {'name': state!},
-      ],
+      if (state != null)
+        'providerStates': [
+          {'name': state!},
+        ],
       'request': {
         'method': method,
         'path': path,
-        if (query.isNotEmpty) 'query': {for (final q in query.entries) q.key: [q.value]},
-        if (headers.isNotEmpty) 'headers': {for (final h in headers.entries) h.key: [h.value]},
+        if (query.isNotEmpty)
+          'query': {
+            for (final q in query.entries) q.key: [q.value]
+          },
+        if (headers.isNotEmpty)
+          'headers': {
+            for (final h in headers.entries) h.key: [h.value]
+          },
         if (body != null)
           'body': {'content': body, 'contentType': 'application/json', 'encoded': false},
         if (generators.isNotEmpty) 'generators': generators,
