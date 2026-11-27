@@ -10,6 +10,10 @@
 #             captured into diagnostics/attempt-N while the emulator is
 #             still in that state, then the run is retried once.
 #
+# The watchdog line is read from the device's logcat, not just from flutter's
+# output: `flutter test` passes on the device's output in one batch when the
+# run ends, so during a hang it would never arrive. logcat is live.
+#
 # Settings (the defaults suit CI; the self-test shortens them):
 #   RUN_LIMIT         time limit for one attempt (default 6m)
 #   WATCHDOG_SECONDS  how long one test step may take (default 60)
@@ -26,6 +30,7 @@ DIAGNOSTICS=diagnostics
 attempt() {
   local log=$1
   : >"$log"
+  timeout 10 adb logcat -c 2>/dev/null # so an earlier attempt's line can't count
   timeout "$RUN_LIMIT" flutter test integration_test \
     --dart-define=API_URL=http://10.0.2.2:8000 \
     --dart-define=WATCHDOG_SECONDS="$WATCHDOG_SECONDS" \
@@ -36,7 +41,7 @@ attempt() {
 
   local watchdog=no
   while kill -0 "$runner" 2>/dev/null; do
-    if grep -q 'WATCHDOG:' "$log"; then
+    if grep -q 'WATCHDOG:' "$log" || device_watchdog >/dev/null; then
       watchdog=yes
       break
     fi
@@ -61,6 +66,11 @@ attempt() {
   fi
 }
 
+# Prints the device's watchdog line, if the app has logged one.
+device_watchdog() {
+  timeout 10 adb logcat -d -s flutter:I 2>/dev/null | grep -m 1 'WATCHDOG:'
+}
+
 # Saves what the emulator looks like right now. Every command may fail on a
 # broken emulator, so none of them can stop the script.
 capture() {
@@ -68,7 +78,7 @@ capture() {
   dir="$DIAGNOSTICS/attempt-$ATTEMPT"
   mkdir -p "$dir"
   echo "--- Capturing diagnostics into $dir" >&2
-  grep 'WATCHDOG:' "$log" >"$dir/watchdog.txt" 2>/dev/null
+  { device_watchdog || grep -m 1 'WATCHDOG:' "$log"; } >"$dir/watchdog.txt" 2>/dev/null
   timeout 20 adb exec-out screencap -p >"$dir/screen.png" 2>/dev/null
   timeout 20 adb shell dumpsys activity top >"$dir/activity-top.txt" 2>&1
   timeout 20 adb shell dumpsys gfxinfo "$APP_ID" >"$dir/gfxinfo.txt" 2>&1
@@ -85,7 +95,23 @@ capture() {
   timeout 30 adb logcat -d >"$dir/logcat.txt" 2>&1
   free -m >"$dir/host-memory.txt" 2>&1
   [ -f api.log ] && tail -n 60 api.log >"$dir/api-log-tail.txt"
-  grep 'WATCHDOG:' "$dir/watchdog.txt" >&2 || echo "(no watchdog line: the run ended or timed out)" >&2
+  summarize "$dir" >&2
+}
+
+# The essentials, printed into the job log so they can be read without
+# downloading the artifact.
+summarize() {
+  local dir=$1
+  echo "--- Diagnostics summary ($dir)"
+  cat "$dir/watchdog.txt" 2>/dev/null | grep . || echo "no watchdog line: the run ended or hit the time limit"
+  cat "$dir/app-pid.txt"
+  echo "screenshot: $(wc -c <"$dir/screen.png" 2>/dev/null || echo 0) bytes"
+  grep -E 'Total frames rendered|Janky frames' "$dir/gfxinfo.txt" 2>/dev/null | head -n 2
+  grep -E '^MemAvailable' "$dir/emulator-meminfo.txt" 2>/dev/null
+  echo "busiest processes on the emulator:"
+  grep -vE '^\s*$|^Tasks|^Mem|^Swap|^ *PID|^[0-9]+%cpu' "$dir/emulator-top.txt" 2>/dev/null | head -n 5
+  echo "last app log lines:"
+  grep -E ' flutter ' "$dir/logcat.txt" 2>/dev/null | tail -n 10
 }
 
 for ATTEMPT in 1 2; do

@@ -11,7 +11,9 @@ failures=0
 # Makes a work folder whose fake flutter plays one scenario per attempt.
 #   pass     prints ✅ lines and exits 0
 #   fail     prints a ❌ line and exits 1
-#   hang     prints a WATCHDOG line, then hangs until killed
+#   hang     logs a WATCHDOG line on the device only (flutter batches the
+#            device output until the end), then hangs until killed
+#   hang-out prints the WATCHDOG line through flutter's output instead
 #   silent   hangs with no output until the time limit
 #   lost     exits 1 with no ❌ line (the tool lost the app)
 setup() {
@@ -24,8 +26,9 @@ n=$(( $(cat calls 2>/dev/null || echo 0) + 1 )); echo "$n" > calls
 case "$(sed -n "${n}p" scenarios)" in
   pass)   echo "✅ buys two seats against the real API"; echo "🎉 2 tests passed."; exit 0 ;;
   fail)   echo "❌ buys two seats against the real API"; exit 1 ;;
-  hang)   echo "✅ buys two seats against the real API"
-          echo 'WATCHDOG: "buys two seats" stuck at "show the seat map" for 60s (frame scheduled true)'
+  hang)   echo 'I flutter : WATCHDOG: "buys two seats" stuck at "show the seat map" for 60s (frame scheduled true)' >> device-log
+          exec sleep 300 ;;
+  hang-out) echo 'WATCHDOG: "buys two seats" stuck at "pick two seats" for 60s'
           exec sleep 300 ;;
   silent) exec sleep 300 ;;
   lost)   echo "🎉 0 tests passed."; exit 1 ;;
@@ -37,7 +40,9 @@ echo "$*" >> adb-calls
 case "$*" in
   "shell pidof dev.kurtish.booking_mobile") echo 4242 ;;
   "exec-out screencap -p") printf 'PNG' ;;
-  "logcat -d") echo "--- thread dump for 4242" ;;
+  "logcat -c") : > device-log ;;
+  "logcat -d -s flutter:I") cat device-log 2>/dev/null ;;
+  "logcat -d") echo "--- thread dump for 4242"; cat device-log 2>/dev/null ;;
   *) echo "fake adb output" ;;
 esac
 EOF
@@ -85,6 +90,14 @@ check "the watchdog line is saved with them" \
   'grep -q "stuck at \"show the seat map\"" $WORK/diagnostics/attempt-1/watchdog.txt'
 check "a thread dump is requested from the app" 'grep -qx "shell kill -3 4242" $WORK/adb-calls'
 check "the logcat with the dump is saved" 'grep -q "thread dump for 4242" $WORK/diagnostics/attempt-1/logcat.txt'
+check "logcat is cleared before each attempt, so attempt 1's line can't fail attempt 2" \
+  '[ "$(grep -cx "logcat -c" $WORK/adb-calls)" -eq 2 ]'
+check "the job log gets a summary with the stuck step" \
+  'grep -q "Diagnostics summary" $WORK/output.txt && grep -q "stuck at \"show the seat map\"" $WORK/output.txt'
+
+setup hang-out pass
+run_script
+check "a watchdog line in flutter's own output works too" '[ $CODE -eq 0 ] && [ $ATTEMPTS -eq 2 ] && [ $TOOK -lt 5 ]'
 
 setup hang hang
 run_script
