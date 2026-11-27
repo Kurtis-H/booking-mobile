@@ -52,7 +52,7 @@ void main() {
     );
   });
 
-  test('summarises validation errors', () async {
+  test('summarizes validation errors', () async {
     final api = apiReturning(http.Response(
         jsonEncode({
           'detail': <Object>[

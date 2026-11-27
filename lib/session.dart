@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'api/booking_api.dart';
@@ -7,7 +8,10 @@ import 'api/booking_api.dart';
 class Session extends ChangeNotifier {
   Session(this.api);
 
-  static const demoKey = 'key-user-1';
+  /// A test buyer's key, for the demo button. Null in release builds: the
+  /// compiler drops the string entirely, so it isn't shipped in the APK
+  /// (mobile-security-lab MS-03).
+  static const String? demoKey = kReleaseMode ? null : 'key-user-1';
 
   final BookingApi api;
   String? _apiKey;
@@ -22,7 +26,7 @@ class Session extends ChangeNotifier {
     try {
       await api.listOrders(trimmed);
     } on ApiException catch (e) {
-      if (e.statusCode == 401) throw const SignInException("That API key wasn't recognised.");
+      if (e.statusCode == 401) throw const SignInException("That API key wasn't recognized.");
       throw const SignInException("We couldn't reach the booking service. Please try again.");
     }
     _apiKey = trimmed;

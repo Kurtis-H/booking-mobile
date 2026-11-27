@@ -42,14 +42,31 @@ flutter test integration_test --dart-define=API_URL=http://10.0.2.2:8000
 maestro test .maestro              # with the app installed on the emulator
 ```
 
-Sign in with a key from the seed data (`key-user-1` to `key-user-200`), or tap "Use the demo account". These keys are public test data.
+Sign in with a key from the seed data (`key-user-1` to `key-user-200`), or tap "Use the demo account" (debug and profile builds only). These keys are public test data.
+
+### Release builds
+
+A release build needs a signing key, and there is no fallback to the debug key. Create one once and keep it out of git (`key.properties`, `*.jks` and `*.keystore` are already ignored):
+
+```bash
+keytool -genkeypair -keystore android/app/release.jks -alias release -keyalg RSA -keysize 2048 -validity 10000
+cat > android/key.properties <<EOF
+storePassword=<the store password>
+keyPassword=<the key password>
+keyAlias=release
+storeFile=release.jks
+EOF
+flutter build apk --release --dart-define=API_URL=https://<your API>
+```
+
+Release builds only talk HTTPS, so `API_URL` must be an `https://` address. Plain HTTP to the emulator host and localhost is allowed in debug and profile builds only.
 
 ## CI
 
 Every push and pull request runs:
 
 * **Analyze, unit, widget and golden tests:** `dart format` check, `flutter analyze`, tests with the coverage gate (including the consumer contract, which must match the committed `pacts/` file), and a self-test of the integration-run script with fake `flutter` and `adb` commands
-* **Build the Android app:** a debug APK
+* **Build the Android app:** a debug APK, then the release checks. A release build without a key must fail, and a release APK built with a throwaway key must be signed with that key and must not contain the demo key
 * **Integration tests and Maestro on an emulator:** starts Postgres and the booking API, boots an Android 14 emulator, runs `integration_test` through [`tool/run_integration_tests.sh`](tool/run_integration_tests.sh), then installs the APK and runs every Maestro flow
 * **CodeQL** for the workflows (CodeQL doesn't analyze Dart), and Dependabot for pub, Gradle and Actions
 
@@ -75,6 +92,10 @@ Very rarely (once in 42 CI runs so far), an integration test on the CI emulator 
 ## Planted bug for test-sensitivity runs
 
 [framework-showdown](https://github.com/Kurtis-H/framework-showdown) needs to prove its suites can fail. Building with `--dart-define=PLANTED_BUG=total` switches on one bug in [`lib/logic/planted_bug.dart`](lib/logic/planted_bug.dart): the order total counts only the first seat. It's off unless set at build time.
+
+## Security
+
+[mobile-security-lab](https://github.com/Kurtis-H/mobile-security-lab) scans every build of the release APK with MobSF and checks its findings. Four are fixed here: release signing (MS-01), plain HTTP in release builds (MS-02), the demo key in the release binary (MS-03) and backups (MS-04). The fifth, support for Android 7 (MS-05), is an accepted risk.
 
 ## Known gaps
 

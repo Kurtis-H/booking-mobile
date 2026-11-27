@@ -63,12 +63,14 @@ class _SignInScreenState extends State<SignInScreen> {
               onPressed: _busy ? null : () => _attempt(_key.text),
               child: Text(_busy ? 'Signing in…' : 'Sign in'),
             ),
-            const SizedBox(height: 24),
-            const Text('This is a demo of the booking API. You can sign in as a test buyer.'),
-            TextButton(
-              onPressed: _busy ? null : () => _attempt(Session.demoKey),
-              child: const Text('Use the demo account'),
-            ),
+            if (Session.demoKey case final demoKey?) ...[
+              const SizedBox(height: 24),
+              const Text('This is a demo of the booking API. You can sign in as a test buyer.'),
+              TextButton(
+                onPressed: _busy ? null : () => _attempt(demoKey),
+                child: const Text('Use the demo account'),
+              ),
+            ],
           ],
         ),
       );
