@@ -30,6 +30,8 @@ jobs:
         run: flutter test --coverage
       - name: At least 80% line coverage
         run: dart run tool/check_coverage.dart coverage/lcov.info 80
+      - name: Integration-run script reacts to passes, failures and hangs (no emulator)
+        run: ./tool/test_run_integration_tests.sh
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
@@ -131,3 +133,5 @@ jobs:
             maestro-report.xml
             maestro-output/
             api.log
+            integration-*.log
+            diagnostics/
