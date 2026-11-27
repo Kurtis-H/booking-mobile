@@ -22,6 +22,7 @@ A Flutter (Android) app for buying event seats, built on the booking API from [a
 | Accessibility | `meetsGuideline`, semantics matchers | Screen-reader labels and states, 48dp tap targets, WCAG text contrast |
 | Integration | `integration_test` on an Android emulator | The real app against the **real** API and Postgres, including a seat sold to someone else mid-purchase |
 | End to end | Maestro on the same emulator | Black-box flows a tester would write: buy seats, sign-in errors, the 10-seat limit |
+| Release build | `flutter_test` on the Android config, plus CI checks on the release APK | Release builds allow no plain HTTP and keep no backups. CI checks that a release build without a key fails, and that the release APK isn't debug-signed and doesn't contain the demo key |
 | Consumer contract | Pact (V4 file format) | What this app needs from the API: 9 interactions checked against the app's own client. The API's CI replays them against the real API |
 
 Unit and widget tests need at least 80% line coverage (`tool/check_coverage.dart`).
