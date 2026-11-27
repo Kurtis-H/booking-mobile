@@ -16,6 +16,7 @@ failures=0
 #   hang-out prints the WATCHDOG line through flutter's output instead
 #   silent   hangs with no output until the time limit
 #   lost     exits 1 with no ❌ line (the tool lost the app)
+#   slow     a step was slow (watchdog line), but the run then passed
 setup() {
   WORK=$(mktemp -d)
   mkdir -p "$WORK/bin"
@@ -32,6 +33,7 @@ case "$(sed -n "${n}p" scenarios)" in
           exec sleep 300 ;;
   silent) exec sleep 300 ;;
   lost)   echo "🎉 0 tests passed."; exit 1 ;;
+  slow)   echo 'WATCHDOG: "buys two seats" stuck at "sign in" for 60s'; echo "🎉 2 tests passed."; exit 0 ;;
 esac
 EOF
   cat >"$WORK/bin/adb" <<'EOF'
@@ -109,6 +111,11 @@ setup silent pass
 LIMIT=3s run_script
 check "a silent hang is caught by the time limit and retried" '[ $CODE -eq 0 ] && [ $ATTEMPTS -eq 2 ]'
 check "a silent hang still gets diagnostics" '[ -s $WORK/diagnostics/attempt-1/logcat.txt ]'
+
+setup slow
+run_script
+check "a run that passes after a slow step counts as passed" '[ $CODE -eq 0 ] && [ $ATTEMPTS -eq 1 ]'
+check "the slow step is still reported" 'grep -q "Passed, but a step was slow: \"buys two seats\" stuck at \"sign in\"" $WORK/output.txt'
 
 setup lost pass
 run_script

@@ -50,13 +50,17 @@ attempt() {
 
   if [ "$watchdog" = yes ]; then
     capture "$log"
-    kill "$runner" 2>/dev/null
+    kill "$runner" 2>/dev/null # if it finished meanwhile, its own exit code stands
   fi
   wait "$runner"
   local code=$?
   wait "$tailer" 2>/dev/null
 
-  if [ "$code" -eq 0 ] && [ "$watchdog" = no ]; then
+  if [ "$code" -eq 0 ]; then
+    # Passed on its own; a watchdog line here only means a step was slow.
+    if grep -q 'WATCHDOG:' "$log" || device_watchdog >/dev/null; then
+      echo "--- Passed, but a step was slow: $( (device_watchdog || grep -m 1 'WATCHDOG:' "$log") | sed 's/.*WATCHDOG: //')" >&2
+    fi
     echo passed
   elif grep -qE '^❌ ' "$log"; then
     echo failed

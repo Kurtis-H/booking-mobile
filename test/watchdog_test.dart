@@ -99,6 +99,24 @@ void main() {
     expect(timers.single.limit, const Duration(seconds: 60));
   });
 
+  test('by default it reports past a zone that captures print', () {
+    // testWidgets captures print() like this and only sends it to the host
+    // when the run ends. The report must escape, so a hung run is seen live.
+    final captured = <String>[];
+    late ManualTimer timer;
+    runZoned(
+      () {
+        Watchdog('zoned', startTimer: (limit, onFire) => timer = ManualTimer(limit, onFire))
+            .mark('step');
+        timer.fire();
+      },
+      zoneSpecification: ZoneSpecification(
+        print: (self, parent, zone, line) => captured.add(line),
+      ),
+    );
+    expect(captured, isEmpty);
+  });
+
   test('the configured limit defaults to 60 seconds', () {
     expect(Watchdog.configuredLimit, const Duration(seconds: 60));
   });

@@ -26,7 +26,7 @@ class Watchdog {
     this.frameState,
     void Function(String line)? report,
     StartTimer? startTimer,
-  })  : _report = report ?? print,
+  })  : _report = report ?? _toLogcat,
         _startTimer = startTimer ?? Timer.new;
 
   /// Read from --dart-define=WATCHDOG_SECONDS, so CI can tune it per run.
@@ -65,6 +65,11 @@ class Watchdog {
     _timer = null;
     _step = 'finished';
   }
+
+  /// testWidgets captures print() inside the test's zone and sends it to the
+  /// host only when the run ends, which a hung run never does. The root
+  /// zone's print goes straight to logcat, where the run script sees it live.
+  static void _toLogcat(String line) => Zone.root.print(line);
 
   void _fire() {
     if (_fired) return; // one report per test is enough to act on
