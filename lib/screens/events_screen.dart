@@ -3,6 +3,8 @@ import 'package:material_ui/material_ui.dart';
 import '../api/models.dart';
 import '../logic/format.dart';
 import '../session.dart';
+import '../theme.dart';
+import '../widgets/date_badge.dart';
 import '../widgets/status.dart';
 import 'event_screen.dart';
 import 'orders_screen.dart';
@@ -72,12 +74,18 @@ class _EventsScreenState extends State<EventsScreen> {
                 child: page.items.isEmpty
                     ? const Center(child: Text('No events on this page.'))
                     : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                         itemCount: page.items.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
                         itemBuilder: (context, i) => _EventTile(event: page.items[i]),
                       ),
               ),
-              SafeArea(
+              Container(
+                decoration: const BoxDecoration(
+                  color: Palette.card,
+                  border: Border(top: BorderSide(color: Palette.line)),
+                ),
+                child: SafeArea(
                 top: false,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -97,6 +105,7 @@ class _EventsScreenState extends State<EventsScreen> {
                   ),
                 ),
               ),
+              ),
             ],
           );
         },
@@ -112,22 +121,73 @@ class _EventTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final soldOut = event.availableSeats == 0;
+    final textTheme = Theme.of(context).textTheme;
     // The identifier becomes the Android resource-id, so UI tests can find a
     // card without matching its whole merged label.
     return Semantics(
       identifier: 'event-${event.id}',
-      child: ListTile(
-        key: ValueKey('event-${event.id}'),
-        title: Text(event.name),
-        subtitle: Text('${event.venue}\n${formatDateTime(event.startsAt)}'),
-        isThreeLine: true,
-        trailing: Text(
-          soldOut ? 'Sold out' : '${pluralize(event.availableSeats, 'seat')} left',
-          style: soldOut ? TextStyle(color: Theme.of(context).colorScheme.error) : null,
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          key: ValueKey('event-${event.id}'),
+          onTap: () => Navigator.of(context)
+              .push(MaterialPageRoute<void>(builder: (_) => EventScreen(eventId: event.id))),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // The event's color band, with its date.
+              Container(
+                width: 78,
+                color: Palette.hueFor(event.id),
+                alignment: Alignment.center,
+                child: DateBadge(when: event.startsAt),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(event.name, style: textTheme.titleMedium),
+                      const SizedBox(height: 2),
+                      Text(event.venue, style: const TextStyle(color: Palette.muted)),
+                      Text(formatDateTime(event.startsAt), style: textTheme.bodySmall),
+                      const SizedBox(height: 8),
+                      _Chip(
+                        text: soldOut ? 'Sold out' : '${pluralize(event.availableSeats, 'seat')} left',
+                        soldOut: soldOut,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-        onTap: () => Navigator.of(context)
-            .push(MaterialPageRoute<void>(builder: (_) => EventScreen(eventId: event.id))),
       ),
     );
   }
+}
+
+class _Chip extends StatelessWidget {
+  const _Chip({required this.text, required this.soldOut});
+  final String text;
+  final bool soldOut;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+        decoration: BoxDecoration(
+          color: soldOut ? Palette.badSoft : Palette.accentSoft,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: soldOut ? Palette.bad : Palette.accent,
+          ),
+        ),
+      );
 }

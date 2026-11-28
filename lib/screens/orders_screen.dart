@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../api/models.dart';
 import '../logic/format.dart';
 import '../session.dart';
+import '../theme.dart';
 import '../widgets/status.dart';
 import 'order_screen.dart';
 
@@ -36,19 +37,52 @@ class _OrdersScreenState extends State<OrdersScreen> {
               return const Center(child: Text("You haven't bought anything yet."));
             }
             return ListView.separated(
+              padding: const EdgeInsets.all(16),
               itemCount: orders.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, i) {
                 final order = orders[i];
-                return ListTile(
-                  key: ValueKey('order-${order.id}'),
-                  title: Text('Order #${order.id}'),
-                  subtitle: Text(
-                    '${pluralize(order.items.length, 'seat')} · ${formatDateTime(order.createdAt)}',
-                  ),
-                  trailing: Text(formatCents(order.totalCents)),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(builder: (_) => OrderScreen(orderId: order.id)),
+                return Card(
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    key: ValueKey('order-${order.id}'),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(builder: (_) => OrderScreen(orderId: order.id)),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Palette.accentSoft,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.confirmation_number_outlined,
+                                color: Palette.accent),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Order #${order.id}',
+                                    style: Theme.of(context).textTheme.titleMedium),
+                                Text(
+                                  '${pluralize(order.items.length, 'seat')} · '
+                                  '${formatDateTime(order.createdAt)}',
+                                  style: const TextStyle(color: Palette.muted),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(formatCents(order.totalCents),
+                              style: const TextStyle(fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
                   ),
                 );
               },

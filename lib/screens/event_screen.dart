@@ -6,6 +6,8 @@ import '../logic/errors.dart';
 import '../logic/format.dart';
 import '../logic/selection.dart';
 import '../session.dart';
+import '../theme.dart';
+import '../widgets/date_badge.dart';
 import '../widgets/seat_map.dart';
 import '../widgets/status.dart';
 import 'order_screen.dart';
@@ -130,32 +132,48 @@ class _EventScreenState extends State<EventScreen> {
           return ErrorView(error: _loadError!, onRetry: _reload);
         }
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
-            Text(event!.name, style: Theme.of(context).textTheme.headlineSmall),
-            Text('${event.venue} · ${formatDateTime(event.startsAt)}'),
-            const SizedBox(height: 4),
-            Text('${pluralize(event.availableSeats, 'seat')} available'),
+            _Hero(event: event!, seats: _seats),
             const SizedBox(height: 16),
-            Text('Choose your seats', style: Theme.of(context).textTheme.titleMedium),
-            const Text('Up to $maxSeatsPerOrder seats per order.'),
-            SeatMap(seats: _seats, selected: _selected, onToggle: _toggle),
-            if (_moreSeats)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: OutlinedButton(
-                  onPressed: _loadingMore ? null : _loadMore,
-                  child: Text(_loadingMore ? 'Loading…' : 'Show more seats'),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text('Choose your seats', style: Theme.of(context).textTheme.titleMedium),
+                    const Text(
+                      'Up to $maxSeatsPerOrder seats per order.',
+                      style: TextStyle(color: Palette.muted),
+                    ),
+                    const SizedBox(height: 12),
+                    SeatMap(seats: _seats, selected: _selected, onToggle: _toggle),
+                    if (_moreSeats)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: OutlinedButton(
+                          onPressed: _loadingMore ? null : _loadMore,
+                          child: Text(_loadingMore ? 'Loading…' : 'Show more seats'),
+                        ),
+                      ),
+                  ],
                 ),
               ),
+            ),
           ],
         );
       }(),
       bottomNavigationBar: event == null
           ? null
-          : SafeArea(
+          : DecoratedBox(
+              decoration: const BoxDecoration(
+                color: Palette.card,
+                border: Border(top: BorderSide(color: Palette.line)),
+              ),
+              child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -194,6 +212,64 @@ class _EventScreenState extends State<EventScreen> {
                 ),
               ),
             ),
+            ),
+    );
+  }
+}
+
+/// The event in its own color: date, name, venue and what's left.
+class _Hero extends StatelessWidget {
+  const _Hero({required this.event, required this.seats});
+  final EventSummary event;
+  final List<Seat> seats;
+
+  @override
+  Widget build(BuildContext context) {
+    const onHue = TextStyle(color: Colors.white);
+    final cheapest = seats.isEmpty
+        ? null
+        : seats.map((s) => s.priceCents).reduce((a, b) => a < b ? a : b);
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Palette.hueFor(event.id),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DateBadge(when: event.startsAt),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event.name,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white),
+                ),
+                const SizedBox(height: 4),
+                Text('${event.venue} · ${formatDateTime(event.startsAt)}', style: onHue),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 14,
+                  children: [
+                    Text(
+                      '${pluralize(event.availableSeats, 'seat')} available',
+                      style: onHue.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    if (cheapest != null)
+                      Text(
+                        'From ${formatCents(cheapest)}',
+                        style: onHue.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

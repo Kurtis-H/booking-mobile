@@ -27,6 +27,67 @@ class FakeBackend {
     }
   }
 
+  /// Named events and a three-section theater for event 1, like the
+  /// website's visual tests. Used by the golden (screenshot) tests.
+  FakeBackend.showcase() : this(events: 0) {
+    const names = [
+      ('Jazz at the Grand', 'The Grand Theater', 86),
+      ('Spring Symphony', 'Riverside Hall', 40),
+      ('Comedy Night', 'The Blue Room', 12),
+      ('Indie Showcase', 'Civic Arena', 0),
+      ('Film Score Live', 'The Grand Theater', 64),
+      ('Acoustic Sessions', 'Riverside Hall', 3),
+    ];
+    for (final (i, (name, venue, seatCount)) in names.indexed) {
+      final id = i + 1;
+      events.add({
+        'id': id,
+        'name': name,
+        'venue': venue,
+        'starts_at': DateTime.utc(2027, 3, 12 + i * 3, 2, 30).toIso8601String(),
+      });
+      if (id == 1) {
+        _addLayout(id, const [
+          ('Orchestra', 3, 14, 9000),
+          ('Mezzanine', 2, 12, 6500),
+          ('Balcony', 2, 10, 4000),
+        ]);
+      } else {
+        for (var n = 1; n <= seatCount; n++) {
+          seats.add({
+            'id': seats.length + 1,
+            'event': id,
+            'label': 'S-$n',
+            'price_cents': 3500,
+            'status': 'available',
+          });
+        }
+      }
+    }
+  }
+
+  void _addLayout(int eventId, List<(String, int, int, int)> sections) {
+    const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    var row = 0;
+    for (final (section, rows, perRow, price) in sections) {
+      for (var r = 0; r < rows; r++) {
+        final letter = letters[row++];
+        for (var n = 1; n <= perRow; n++) {
+          seats.add({
+            'id': seats.length + 1,
+            'event': eventId,
+            'label': '$letter-$n',
+            'price_cents': price,
+            'status': 'available',
+            'section': section,
+            'row': letter,
+            'number': n,
+          });
+        }
+      }
+    }
+  }
+
   static const validKeys = {'key-user-1', 'key-user-2'};
 
   final events = <Map<String, Object>>[];
@@ -48,7 +109,10 @@ class FakeBackend {
         'id': s['id']!,
         'label': s['label']!,
         'price_cents': s['price_cents']!,
-        'status': s['status']!
+        'status': s['status']!,
+        // Like an API from before venue layouts, unless the seat has them.
+        for (final field in ['section', 'row', 'number'])
+          if (s[field] case final value?) field: value,
       };
 
   void sellBehindTheScenes(int seatId) =>

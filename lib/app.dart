@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'screens/event_screen.dart';
 import 'screens/events_screen.dart';
 import 'session.dart';
+import 'theme.dart';
 
 class BookingApp extends StatelessWidget {
   const BookingApp({super.key, required this.session, this.home});
@@ -18,10 +19,7 @@ class BookingApp extends StatelessWidget {
         child: MaterialApp(
           title: 'Booking',
           debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2448A8)),
-            useMaterial3: true,
-          ),
+          theme: bookingTheme(),
           home: home ?? const EventsScreen(),
         ),
       );

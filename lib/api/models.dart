@@ -46,19 +46,40 @@ class Seat {
     required this.label,
     required this.priceCents,
     required this.status,
-  });
+    this.section = 'General',
+    String? row,
+    int? number,
+  })  : row = row ?? '',
+        _number = number;
 
   factory Seat.fromJson(Json json) => Seat(
         id: json['id'] as int,
         label: json['label'] as String,
         priceCents: json['price_cents'] as int,
         status: json['status'] as String,
+        // Older API versions send only the label; the app copes without the rest.
+        section: json['section'] as String? ?? 'General',
+        row: json['row'] as String?,
+        number: json['number'] as int?,
       );
 
   final int id;
+
+  /// "R3-12" or "A-7": the row, a dash, then the seat number.
   final String label;
   final int priceCents;
   final String status;
+
+  /// The price tier the seat is in, such as "Orchestra". "General" for a plain block.
+  final String section;
+  final String row;
+  final int? _number;
+
+  /// The seat's number in its row, from the API or else read from the label.
+  String get number => _number?.toString() ?? label.split('-').last;
+
+  /// The row, from the API or else read from the label.
+  String get rowName => row.isNotEmpty ? row : label.split('-').first;
 }
 
 class OrderItem {
