@@ -40,18 +40,38 @@ class BookingApi {
   Future<EventSummary> getEvent(int id) async =>
       EventSummary.fromJson(await _send('GET', '/events/$id') as Json);
 
-  /// Available seats, or with [sold] the ones already taken (so the map can show them).
+  /// Seats with this status: "available" (free for anyone), "held" (someone
+  /// holds them, possibly you) or "sold".
   Future<List<Seat>> listSeats(
     int eventId, {
     required int limit,
     required int offset,
-    bool sold = false,
+    String status = 'available',
   }) async {
-    final status = sold ? '&status=sold' : '';
+    final filter = status == 'available' ? '' : '&status=$status';
     final page =
-        await _send('GET', '/events/$eventId/seats?limit=$limit&offset=$offset$status') as Json;
+        await _send('GET', '/events/$eventId/seats?limit=$limit&offset=$offset$filter') as Json;
     return (page['items'] as List<dynamic>).map((s) => Seat.fromJson(s as Json)).toList();
   }
+
+  /// Your hold on this event's seats, or null if you hold none.
+  Future<Hold?> getHold(int eventId, String apiKey) async {
+    try {
+      return Hold.fromJson(await _send('GET', '/events/$eventId/hold', apiKey: apiKey) as Json);
+    } on ApiException catch (e) {
+      if (e.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
+  /// Hold these seats (replacing any you hold for the event) and restart the timer.
+  Future<Hold> holdSeats(int eventId, List<int> seatIds, String apiKey) async => Hold.fromJson(
+        await _send('PUT', '/events/$eventId/hold', body: {'seat_ids': seatIds}, apiKey: apiKey)
+            as Json,
+      );
+
+  Future<void> releaseHold(int eventId, String apiKey) =>
+      _send('DELETE', '/events/$eventId/hold', apiKey: apiKey);
 
   Future<Order> createOrder(List<int> seatIds, String apiKey) async => Order.fromJson(
         await _send('POST', '/orders', body: {'seat_ids': seatIds}, apiKey: apiKey) as Json,
@@ -85,6 +105,7 @@ class BookingApi {
       throw const ApiException(0, 'Network unreachable');
     }
 
+    if (response.statusCode == 204) return null;
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return jsonDecode(utf8.decode(response.bodyBytes));
     }

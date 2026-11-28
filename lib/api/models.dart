@@ -80,6 +80,17 @@ class Seat {
 
   /// The row, from the API or else read from the label.
   String get rowName => row.isNotEmpty ? row : label.split('-').first;
+
+  /// The same seat with another status, such as a seat you hold shown as one you can buy.
+  Seat withStatus(String newStatus) => Seat(
+        id: id,
+        label: label,
+        priceCents: priceCents,
+        status: newStatus,
+        section: section,
+        row: row,
+        number: _number,
+      );
 }
 
 class OrderItem {
@@ -118,4 +129,19 @@ class Order {
   final int totalCents;
   final DateTime createdAt;
   final List<OrderItem> items;
+}
+
+/// Seats you hold for an event, and when the hold ends.
+class Hold {
+  const Hold({required this.eventId, required this.seatIds, required this.expiresAt});
+
+  factory Hold.fromJson(Json json) => Hold(
+        eventId: json['event_id'] as int,
+        seatIds: (json['seat_ids'] as List<dynamic>).cast<int>(),
+        expiresAt: DateTime.parse(json['expires_at'] as String),
+      );
+
+  final int eventId;
+  final List<int> seatIds;
+  final DateTime expiresAt;
 }

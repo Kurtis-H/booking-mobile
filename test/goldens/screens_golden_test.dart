@@ -1,4 +1,5 @@
 import 'package:booking_mobile/app.dart';
+import 'package:booking_mobile/screens/event_screen.dart' show clockNow;
 import 'package:booking_mobile/screens/orders_screen.dart';
 import 'package:booking_mobile/screens/sign_in_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -35,6 +36,29 @@ void main() {
     }
     await tester.pumpAndSettle();
     await shot('seat_map');
+  });
+
+  testWidgets('seats held for you', (tester) async {
+    phone(tester);
+    // A fixed clock, and a hold that ends 9:41 after it, so the countdown is stable.
+    final now = DateTime.utc(2026, 11, 27, 17);
+    clockNow = () => now;
+    addTearDown(() => clockNow = DateTime.now);
+    final backend = FakeBackend.showcase()..now = () => now;
+    for (final label in ['B-3', 'B-4']) {
+      backend.holdBehindTheScenes(
+        backend.seatId(label),
+        owner: 'key-user-1',
+        until: now.add(const Duration(minutes: 9, seconds: 41)),
+      );
+    }
+    // Open the event once signed in; a running countdown never "settles".
+    final app = await pumpApp(tester, backend: backend, signedInAs: 'key-user-1');
+    await tester.pumpWidget(BookingApp(session: app.session, home: eventHome(1)));
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await shot('seat_map_held');
   });
 
   testWidgets('seat taken by someone else first', (tester) async {
