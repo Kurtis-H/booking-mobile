@@ -64,6 +64,8 @@ class _EventScreenState extends State<EventScreen> {
   }
 
   Future<void> _reload() async {
+    // Read before any await: the screen may be gone by the time they finish.
+    final key = SessionScope.of(context).apiKey;
     setState(() {
       _loading = true;
       _loadError = null;
@@ -73,7 +75,6 @@ class _EventScreenState extends State<EventScreen> {
       final seats = await _api.listSeats(widget.eventId, limit: seatsPerPage, offset: 0);
       final sold = await _all('sold');
       final held = await _all('held');
-      final key = SessionScope.of(context).apiKey;
       final hold = key == null ? null : await _api.getHold(widget.eventId, key);
       if (!mounted) return;
       _setHold(hold);
