@@ -103,7 +103,7 @@ void main() {
       expect(find.bySemanticsLabel('Seat R1-2, sold'), findsOneWidget);
       expect(seatButton('R1-2'), findsNothing);
       // In place: between seats 1 and 3 of the same row.
-      final x = (Finder f) => tester.getCenter(f).dx;
+      double x(Finder f) => tester.getCenter(f).dx;
       expect(x(seatButton('R1-1')), lessThan(x(sold)));
       expect(x(sold), lessThan(x(seatButton('R1-3'))));
 
