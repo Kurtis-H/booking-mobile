@@ -14,10 +14,13 @@ abstract final class Palette {
   static const okSoft = Color(0xFFE4F4EA);
   static const bad = Color(0xFFB42318);
   static const badSoft = Color(0xFFFDECEA);
-  static const seat = Color(0xFFEEF0FB);
-  static const seatLine = Color(0xFFCDD2EF);
-  static const sold = Color(0xFFE4E3EA);
-  static const soldInk = Color(0xFF5B596E);
+  // Seats: available is white with a clear outline, sold is a darker grey with
+  // an X instead of its number, selected is solid indigo. Each differs in more
+  // than color, so they read apart at a glance and in grayscale.
+  static const seat = Color(0xFFFFFFFF);
+  static const seatLine = Color(0xFF9EA5D6);
+  static const sold = Color(0xFFCFCDD8);
+  static const soldInk = Color(0xFF4A4858);
 
   /// One color per event, picked by id. White text passes WCAG AA on each.
   static const hues = [

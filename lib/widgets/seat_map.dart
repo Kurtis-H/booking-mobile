@@ -7,7 +7,7 @@ import '../theme.dart';
 
 /// The venue, front to back. Each available seat is a toggle; screen readers
 /// hear "Seat R2-5, $30.00" and whether it is selected. Sold seats stay in
-/// place, greyed out ("Seat R2-6, sold"), so rows keep their shape. They get
+/// place, as a darker seat with an X ("Seat R2-6, sold"), so rows keep their shape. They get
 /// their own key (sold-seat-…), so seat-… always means a seat you can buy.
 ///
 /// A venue layout is drawn as sections (price tiers), each with its color and
@@ -267,16 +267,7 @@ class _SeatButton extends StatelessWidget {
           height: _seatSize,
           alignment: Alignment.center,
           decoration: const BoxDecoration(color: Palette.sold, borderRadius: shape),
-          child: Text(
-            seat.number,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-              color: Palette.soldInk,
-              decoration: TextDecoration.lineThrough,
-              decorationColor: Palette.soldInk,
-            ),
-          ),
+          child: const Icon(Icons.close, size: 20, color: Palette.soldInk),
         ),
       );
     }
@@ -294,7 +285,7 @@ class _SeatButton extends StatelessWidget {
           color: selected ? Palette.accent : Palette.seat,
           shape: RoundedRectangleBorder(
             borderRadius: shape,
-            side: BorderSide(color: selected ? Palette.accent : Palette.seatLine),
+            side: BorderSide(color: selected ? Palette.accent : Palette.seatLine, width: 1.5),
           ),
           clipBehavior: Clip.antiAlias,
           child: InkWell(

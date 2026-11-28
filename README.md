@@ -14,7 +14,7 @@ These are the app's golden test images, so they always show the current build.
 
 * Browse upcoming events a page at a time, with seats left and sold-out events marked.
 * Pick up to 10 seats on a seat map, see the total, and buy them (signing in first if needed).
-* Venues are laid out in sections (Orchestra, Mezzanine, Balcony), each a price tier with its own color, as on the website. Rows stay on one line and a wide section scrolls sideways, with the row letters pinned. Sold seats stay in place, greyed out, so rows keep their shape.
+* Venues are laid out in sections (Orchestra, Mezzanine, Balcony), each a price tier with its own color, as on the website. Rows stay on one line and a wide section scrolls sideways, with the row letters pinned. Sold seats stay in place as darker seats marked with an X (not just a different color), so rows keep their shape.
 * See your orders and open any of them.
 * Handle what goes wrong on a phone: someone else buys your seat first (409), rate limits (429, using `Retry-After`), an expired session (401), missing events (404), and being offline. Every case has a clear message and a way forward.
 * Accessible: each seat is announced as "Seat R2-5, $30.00" with its selected state, and tap targets and text contrast are checked by the tests.
