@@ -12,16 +12,18 @@ name: Ten-seat limit
 - extendedWaitUntil:
     visible: "Choose your seats"
     timeout: 20000
+# The seeded events use the venue layout, where each row scrolls sideways, so
+# pick from the first seats of two rows (all on screen), then try an 11th.
 - tapOn: {id: "seat-R1-1"}
 - tapOn: {id: "seat-R1-2"}
 - tapOn: {id: "seat-R1-3"}
 - tapOn: {id: "seat-R1-4"}
 - tapOn: {id: "seat-R1-5"}
+- tapOn: {id: "seat-R2-1"}
+- tapOn: {id: "seat-R2-2"}
+- tapOn: {id: "seat-R2-3"}
+- tapOn: {id: "seat-R2-4"}
+- tapOn: {id: "seat-R2-5"}
 - tapOn: {id: "seat-R1-6"}
-- tapOn: {id: "seat-R1-7"}
-- tapOn: {id: "seat-R1-8"}
-- tapOn: {id: "seat-R1-9"}
-- tapOn: {id: "seat-R1-10"}
-- tapOn: {id: "seat-R1-11"}
 - assertVisible: "You can buy up to 10 seats in one order."
 - assertVisible: "Sign in to buy 10 seats"
