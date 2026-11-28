@@ -36,8 +36,12 @@ void main() {
       expect(find.text('Hold for 10 minutes'), findsNothing);
       expect(find.text('Buy 2 seats'), findsOneWidget);
 
-      await tester.pump(const Duration(seconds: 2));
-      expect(find.textContaining(RegExp(r'^Held for you · 9:5\d$')), findsOneWidget);
+      // Twenty seconds later (on the countdown's clock), it shows 9:40.
+      final later = DateTime.now().add(const Duration(seconds: 20));
+      clockNow = () => later;
+      addTearDown(() => clockNow = DateTime.now);
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.textContaining(RegExp(r'^Held for you · 9:[34]\d$')), findsOneWidget);
     });
 
     testWidgets('offers to update the hold when the selection changes', (tester) async {
