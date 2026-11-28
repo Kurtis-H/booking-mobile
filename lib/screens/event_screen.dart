@@ -149,18 +149,18 @@ class _EventScreenState extends State<EventScreen> {
                     ),
                     const SizedBox(height: 12),
                     SeatMap(seats: _seats, selected: _selected, onToggle: _toggle),
-                    if (_moreSeats)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: OutlinedButton(
-                          onPressed: _loadingMore ? null : _loadMore,
-                          child: Text(_loadingMore ? 'Loading…' : 'Show more seats'),
-                        ),
-                      ),
                   ],
                 ),
               ),
             ),
+            if (_moreSeats)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: OutlinedButton(
+                  onPressed: _loadingMore ? null : _loadMore,
+                  child: Text(_loadingMore ? 'Loading…' : 'Show more seats'),
+                ),
+              ),
           ],
         );
       }(),
