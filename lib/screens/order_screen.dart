@@ -78,6 +78,8 @@ class _Ticket extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
+        // Each seat line and the total stay separate for screen readers.
+        semanticContainer: false,
         clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -95,6 +95,12 @@ void main() {
       expect(app.backend.orders, isEmpty);
     });
 
+    testWidgets('the seat heading is its own accessibility node, as UI tests and screen readers need',
+        (tester) async {
+      await pumpApp(tester, home: eventHome(1));
+      expect(find.bySemanticsLabel('Choose your seats'), findsOneWidget);
+    });
+
     testWidgets('shows sold seats greyed out in place, and they cannot be picked', (tester) async {
       final backend = FakeBackend()..sellBehindTheScenes(2);
       await pumpApp(tester, backend: backend, signedInAs: 'key-user-1', home: eventHome(1));

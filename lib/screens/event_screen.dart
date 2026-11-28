@@ -160,6 +160,9 @@ class _EventScreenState extends State<EventScreen> {
             _Hero(event: event!, seats: _seats),
             const SizedBox(height: 16),
             Card(
+              // Keep the heading, the hint and each seat as their own
+              // accessibility nodes; a Card merges its text into one by default.
+              semanticContainer: false,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
