@@ -86,25 +86,25 @@ class _EventsScreenState extends State<EventsScreen> {
                   border: Border(top: BorderSide(color: Palette.line)),
                 ),
                 child: SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      OutlinedButton(
-                        onPressed: _page > 1 ? () => _goTo(_page - 1) : null,
-                        child: const Text('Previous'),
-                      ),
-                      Semantics(liveRegion: true, child: Text('Page $_page of $pages')),
-                      OutlinedButton(
-                        onPressed: _page < pages ? () => _goTo(_page + 1) : null,
-                        child: const Text('Next'),
-                      ),
-                    ],
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        OutlinedButton(
+                          onPressed: _page > 1 ? () => _goTo(_page - 1) : null,
+                          child: const Text('Previous'),
+                        ),
+                        Semantics(liveRegion: true, child: Text('Page $_page of $pages')),
+                        OutlinedButton(
+                          onPressed: _page < pages ? () => _goTo(_page + 1) : null,
+                          child: const Text('Next'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
               ),
             ],
           );
@@ -154,7 +154,9 @@ class _EventTile extends StatelessWidget {
                       Text(formatDateTime(event.startsAt), style: textTheme.bodySmall),
                       const SizedBox(height: 8),
                       _Chip(
-                        text: soldOut ? 'Sold out' : '${pluralize(event.availableSeats, 'seat')} left',
+                        text: soldOut
+                            ? 'Sold out'
+                            : '${pluralize(event.availableSeats, 'seat')} left',
                         soldOut: soldOut,
                       ),
                     ],

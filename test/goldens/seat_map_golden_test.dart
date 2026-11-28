@@ -26,7 +26,8 @@ void main() {
   testWidgets('a plain block of seats wraps, with no section heading', (tester) async {
     final seats = [
       for (var n = 0; n < 24; n++)
-        Seat(id: n + 1, label: 'R${n ~/ 8 + 1}-${n % 8 + 1}', priceCents: 2500, status: 'available'),
+        Seat(
+            id: n + 1, label: 'R${n ~/ 8 + 1}-${n % 8 + 1}', priceCents: 2500, status: 'available'),
     ];
     await pumpMap(tester, seats, const [3, 4, 12]);
     await expectLater(find.byType(SeatMap), matchesGoldenFile('images/seat_map_plain.png'));

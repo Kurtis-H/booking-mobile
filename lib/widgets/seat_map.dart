@@ -63,7 +63,8 @@ class _Stage extends StatelessWidget {
           height: 28,
           alignment: Alignment.center,
           decoration: const BoxDecoration(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(999), bottom: Radius.circular(10)),
+            borderRadius:
+                BorderRadius.vertical(top: Radius.circular(999), bottom: Radius.circular(10)),
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,

@@ -29,7 +29,9 @@ class FakeBackend {
 
   /// Named events and a three-section theater for event 1, like the
   /// website's visual tests. Used by the golden (screenshot) tests.
-  FakeBackend.showcase() : this(events: 0) {
+  factory FakeBackend.showcase() => FakeBackend(events: 0).._fillShowcase();
+
+  void _fillShowcase() {
     const names = [
       ('Jazz at the Grand', 'The Grand Theater', 86),
       ('Spring Symphony', 'Riverside Hall', 40),

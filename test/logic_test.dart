@@ -111,8 +111,8 @@ void main() {
   });
 
   group('sections', () {
-    Seat at(int id, String section, String label, [int price = 1000]) => Seat(
-        id: id, label: label, priceCents: price, status: 'available', section: section);
+    Seat at(int id, String section, String label, [int price = 1000]) =>
+        Seat(id: id, label: label, priceCents: price, status: 'available', section: section);
 
     test('come out front to back, whatever order the seats arrive in', () {
       final sections = groupBySection([

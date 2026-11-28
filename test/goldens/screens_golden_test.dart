@@ -28,7 +28,8 @@ void main() {
 
   testWidgets('seat map with seats selected', (tester) async {
     phone(tester);
-    await pumpApp(tester, backend: FakeBackend.showcase(), signedInAs: 'key-user-1', home: eventHome(1));
+    await pumpApp(tester,
+        backend: FakeBackend.showcase(), signedInAs: 'key-user-1', home: eventHome(1));
     for (final seat in ['B-3', 'B-4', 'B-5']) {
       await tester.tap(find.byKey(ValueKey('seat-$seat')));
     }
@@ -39,7 +40,8 @@ void main() {
   testWidgets('seat taken by someone else first', (tester) async {
     phone(tester);
     final backend = FakeBackend.showcase();
-    final app = await pumpApp(tester, backend: backend, signedInAs: 'key-user-1', home: eventHome(1));
+    final app =
+        await pumpApp(tester, backend: backend, signedInAs: 'key-user-1', home: eventHome(1));
     await tester.tap(find.byKey(const ValueKey('seat-A-1')));
     await tester.pump();
     app.backend.sellBehindTheScenes(1);
@@ -56,7 +58,8 @@ void main() {
 
   testWidgets('order confirmation', (tester) async {
     phone(tester);
-    await pumpApp(tester, backend: FakeBackend.showcase(), signedInAs: 'key-user-1', home: eventHome(1));
+    await pumpApp(tester,
+        backend: FakeBackend.showcase(), signedInAs: 'key-user-1', home: eventHome(1));
     for (final seat in ['B-3', 'B-4']) {
       await tester.tap(find.byKey(ValueKey('seat-$seat')));
     }
@@ -69,7 +72,8 @@ void main() {
   testWidgets('my orders', (tester) async {
     phone(tester);
     final backend = FakeBackend.showcase();
-    final app = await pumpApp(tester, backend: backend, signedInAs: 'key-user-1', home: eventHome(1));
+    final app =
+        await pumpApp(tester, backend: backend, signedInAs: 'key-user-1', home: eventHome(1));
     await tester.tap(find.byKey(const ValueKey('seat-C-3')));
     await tester.pump();
     await tester.tap(find.text('Buy 1 seat'));

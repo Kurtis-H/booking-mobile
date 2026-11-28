@@ -172,46 +172,46 @@ class _EventScreenState extends State<EventScreen> {
                 border: Border(top: BorderSide(color: Palette.line)),
               ),
               child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (_notice != null)
-                      Semantics(
-                        liveRegion: true,
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Text(
-                            _notice!,
-                            key: const ValueKey('order-notice'),
-                            style: TextStyle(color: Theme.of(context).colorScheme.error),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_notice != null)
+                        Semantics(
+                          liveRegion: true,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              _notice!,
+                              key: const ValueKey('order-notice'),
+                              style: TextStyle(color: Theme.of(context).colorScheme.error),
+                            ),
                           ),
                         ),
+                      Text(
+                        'Total: ${formatCents(totalCents(_seats, _selected))}',
+                        key: const ValueKey('order-total'),
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
-                    Text(
-                      'Total: ${formatCents(totalCents(_seats, _selected))}',
-                      key: const ValueKey('order-total'),
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    FilledButton(
-                      onPressed: _selected.isEmpty || _buying ? null : _buy,
-                      child: Text(
-                        _buying
-                            ? 'Placing order…'
-                            : _selected.isEmpty
-                                ? 'Select seats to buy'
-                                : session.isSignedIn
-                                    ? 'Buy ${pluralize(_selected.length, 'seat')}'
-                                    : 'Sign in to buy ${pluralize(_selected.length, 'seat')}',
+                      const SizedBox(height: 8),
+                      FilledButton(
+                        onPressed: _selected.isEmpty || _buying ? null : _buy,
+                        child: Text(
+                          _buying
+                              ? 'Placing order…'
+                              : _selected.isEmpty
+                                  ? 'Select seats to buy'
+                                  : session.isSignedIn
+                                      ? 'Buy ${pluralize(_selected.length, 'seat')}'
+                                      : 'Sign in to buy ${pluralize(_selected.length, 'seat')}',
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
             ),
     );
   }
@@ -226,9 +226,8 @@ class _Hero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const onHue = TextStyle(color: Colors.white);
-    final cheapest = seats.isEmpty
-        ? null
-        : seats.map((s) => s.priceCents).reduce((a, b) => a < b ? a : b);
+    final cheapest =
+        seats.isEmpty ? null : seats.map((s) => s.priceCents).reduce((a, b) => a < b ? a : b);
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
