@@ -28,16 +28,20 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter test --update-goldens test/goldens
+      - name: Regenerate the consumer contract
+        run: flutter test test/contract
       - name: Print the formatter's changes, if any
         run: dart format lib test integration_test tool && git diff -- '*.dart'
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: goldens
-          path: test/goldens/images/
+          path: |
+            test/goldens/images/
+            pacts/
       - name: Print the goldens (for environments that can read logs but not artifacts)
         run: |
           echo "----- BEGIN GOLDENS (tar.gz, base64) -----"
-          tar czf - test/goldens/images | base64 -w 0
+          tar czf - test/goldens/images pacts | base64 -w 0
           echo
           echo "----- END GOLDENS -----"
 

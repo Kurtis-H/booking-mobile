@@ -46,7 +46,7 @@ class FakeBackend {
         'id': id,
         'name': name,
         'venue': venue,
-        'starts_at': DateTime.utc(2027, 3, 12 + i * 3, 2, 30).toIso8601String(),
+        'starts_at': DateTime.utc(2027, 3, 12 + i * 3, 19, 30).toIso8601String(),
       });
       if (id == 1) {
         _addLayout(id, const [
@@ -80,7 +80,10 @@ class FakeBackend {
             'event': eventId,
             'label': '$letter-$n',
             'price_cents': price,
-            'status': 'available',
+            // A few seats are already sold, as on the website's screenshots.
+            'status': (letter == 'A' && n >= 6 && n <= 8) || (letter == 'D' && n <= 4)
+                ? 'sold'
+                : 'available',
             'section': section,
             'row': letter,
             'number': n,
@@ -149,7 +152,13 @@ class FakeBackend {
       if (event == null) return notFound('Event');
       if (path.length == 2) return json({...event, 'available_seats': _available(id!).length});
       if (path[2] == 'seats') {
-        final page = _available(id!).skip(offset).take(limit).map(_seatOut).toList();
+        final status = q['status'] ?? 'available';
+        final page = seats
+            .where((s) => s['event'] == id && s['status'] == status)
+            .skip(offset)
+            .take(limit)
+            .map(_seatOut)
+            .toList();
         return json({'items': page, 'limit': limit, 'offset': offset});
       }
     }

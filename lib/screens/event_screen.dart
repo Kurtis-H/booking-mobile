@@ -26,6 +26,9 @@ class EventScreen extends StatefulWidget {
 class _EventScreenState extends State<EventScreen> {
   EventSummary? _event;
   final List<Seat> _seats = [];
+
+  /// Seats already sold: drawn greyed out in place, so rows keep their shape.
+  final List<Seat> _sold = [];
   bool _moreSeats = false;
   Object? _loadError;
   bool _loading = true;
@@ -50,18 +53,37 @@ class _EventScreenState extends State<EventScreen> {
     try {
       final event = await _api.getEvent(widget.eventId);
       final seats = await _api.listSeats(widget.eventId, limit: seatsPerPage, offset: 0);
+      final sold = await _allSold();
       if (!mounted) return;
       setState(() {
         _event = event;
         _seats
           ..clear()
           ..addAll(seats);
+        _sold
+          ..clear()
+          ..addAll(sold);
         _moreSeats = seats.length == seatsPerPage;
       });
     } catch (e) {
       if (mounted) setState(() => _loadError = e);
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  /// Every sold seat, a page at a time. An event has at most 1,000 seats.
+  Future<List<Seat>> _allSold() async {
+    final sold = <Seat>[];
+    while (true) {
+      final page = await _api.listSeats(
+        widget.eventId,
+        limit: seatsPerPage,
+        offset: sold.length,
+        sold: true,
+      );
+      sold.addAll(page);
+      if (page.length < seatsPerPage) return sold;
     }
   }
 
@@ -125,7 +147,8 @@ class _EventScreenState extends State<EventScreen> {
     final session = SessionScope.of(context);
     final event = _event;
     return Scaffold(
-      appBar: AppBar(title: Text(event?.name ?? 'Event')),
+      // The hero names the event, so the bar names the task.
+      appBar: AppBar(title: const Text('Choose seats')),
       body: () {
         if (_loading && event == null) return const LoadingView(label: 'Loading event…');
         if (_loadError != null && event == null) {
@@ -148,7 +171,12 @@ class _EventScreenState extends State<EventScreen> {
                       style: TextStyle(color: Palette.muted),
                     ),
                     const SizedBox(height: 12),
-                    SeatMap(seats: _seats, selected: _selected, onToggle: _toggle),
+                    SeatMap(
+                      seats: _seats,
+                      sold: _sold,
+                      selected: _selected,
+                      onToggle: _toggle,
+                    ),
                   ],
                 ),
               ),

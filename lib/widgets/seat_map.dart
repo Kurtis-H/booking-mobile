@@ -5,17 +5,26 @@ import '../logic/format.dart';
 import '../logic/selection.dart';
 import '../theme.dart';
 
-/// The venue, front to back. Each seat is a toggle; screen readers hear
-/// "Seat R2-5, $30.00" and whether it is selected.
+/// The venue, front to back. Each available seat is a toggle; screen readers
+/// hear "Seat R2-5, $30.00" and whether it is selected. Sold seats stay in
+/// place, greyed out ("Seat R2-6, sold"), so rows keep their shape. They get
+/// their own key (sold-seat-…), so seat-… always means a seat you can buy.
 ///
 /// A venue layout is drawn as sections (price tiers), each with its color and
 /// price. Rows stay on one line and are centered, so the venue tapers; a wide
 /// section scrolls sideways while the row letters stay put. A plain block of
 /// seats (one "General" section) wraps instead, with no section heading.
 class SeatMap extends StatelessWidget {
-  const SeatMap({super.key, required this.seats, required this.selected, required this.onToggle});
+  const SeatMap({
+    super.key,
+    required this.seats,
+    this.sold = const [],
+    required this.selected,
+    required this.onToggle,
+  });
 
   final List<Seat> seats;
+  final List<Seat> sold;
   final List<int> selected;
   final ValueChanged<int> onToggle;
 
@@ -28,7 +37,11 @@ class SeatMap extends StatelessWidget {
       );
     }
     final chosen = selected.toSet();
-    final sections = groupBySection(seats);
+    final available = {for (final seat in seats) seat.id};
+    final sections = groupBySection([
+      ...seats,
+      ...sold.where((seat) => !available.contains(seat.id)),
+    ]);
     final plain = isPlainBlock(sections);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -243,6 +256,30 @@ class _SeatButton extends StatelessWidget {
       bottomRight: Radius.circular(6),
     );
     final stripe = tier;
+    if (seat.status == 'sold') {
+      return Semantics(
+        identifier: 'sold-seat-${seat.label}',
+        label: 'Seat ${seat.label}, sold',
+        excludeSemantics: true,
+        child: Container(
+          key: ValueKey('sold-seat-${seat.label}'),
+          width: _seatSize,
+          height: _seatSize,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(color: Palette.sold, borderRadius: shape),
+          child: Text(
+            seat.number,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              color: Palette.soldInk,
+              decoration: TextDecoration.lineThrough,
+              decorationColor: Palette.soldInk,
+            ),
+          ),
+        ),
+      );
+    }
     return Semantics(
       identifier: 'seat-${seat.label}',
       label: 'Seat ${seat.label}, ${formatCents(seat.priceCents)}',

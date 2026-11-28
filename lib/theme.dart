@@ -16,6 +16,8 @@ abstract final class Palette {
   static const badSoft = Color(0xFFFDECEA);
   static const seat = Color(0xFFEEF0FB);
   static const seatLine = Color(0xFFCDD2EF);
+  static const sold = Color(0xFFE4E3EA);
+  static const soldInk = Color(0xFF5B596E);
 
   /// One color per event, picked by id. White text passes WCAG AA on each.
   static const hues = [

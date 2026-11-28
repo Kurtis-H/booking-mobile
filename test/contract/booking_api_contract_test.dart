@@ -171,6 +171,35 @@ void main() {
     expect(seats.single.label, 'R1-1');
   });
 
+  test("the sold seats of an event, so the map can show them as taken", () async {
+    final sold = await recorded(
+      Interaction(
+        description: "a request for an event's sold seats",
+        state: 'a seat has already been sold',
+        method: 'GET',
+        path: '/events/1/seats',
+        pathExpression: r'/events/${eventId}/seats',
+        query: {'limit': '$seatsPerPage', 'offset': '0', 'status': 'sold'},
+        headers: acceptJson,
+        status: 200,
+        responseBody: {
+          'items': [
+            {'id': 1, 'label': 'R1-1', 'price_cents': 3500, 'status': 'sold'},
+          ],
+        },
+        responseRules: {
+          r'$.items': eachLike(),
+          r'$.items[*].id': integer,
+          r'$.items[*].label': anyType,
+          r'$.items[*].price_cents': integer,
+          r'$.items[*].status': regex('sold'),
+        },
+      ),
+      (api) => api.listSeats(1, limit: seatsPerPage, offset: 0, sold: true),
+    );
+    expect(sold.single.status, 'sold');
+  });
+
   test('buying a seat', () async {
     final placed = await recorded(
       Interaction(

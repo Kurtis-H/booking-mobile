@@ -45,10 +45,10 @@ class _SignInScreenState extends State<SignInScreen> {
           children: [
             const Icon(Icons.confirmation_number_outlined, size: 40, color: Palette.accent),
             const SizedBox(height: 12),
-            Text('Welcome back', style: Theme.of(context).textTheme.headlineSmall),
+            Text('Sign in to book seats', style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 4),
             const Text(
-              'Sign in with your API key to buy seats and see your orders.',
+              'Use your API key. You can browse events without signing in.',
               style: TextStyle(color: Palette.muted),
             ),
             const SizedBox(height: 20),
