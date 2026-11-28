@@ -10,7 +10,10 @@ tags: [smoke]
 - assertVisible: "Sign out"
 - tapOn:
     id: "event-2"
-- assertVisible: "Choose your seats"
+# The event and its sold seats load first; a CI emulator can be slow.
+- extendedWaitUntil:
+    visible: "Choose your seats"
+    timeout: 20000
 - tapOn:
     id: "seat-R1-1"
 - tapOn:

@@ -3,8 +3,15 @@ appId: dev.kurtish.booking_mobile
 name: Ten-seat limit
 ---
 - runFlow: common/open_app.yaml
+# Event cards are tall, so event 5 can start below the fold.
+- scrollUntilVisible:
+    element: {id: "event-5"}
+    direction: DOWN
+    timeout: 20000
 - tapOn: {id: "event-5"}
-- assertVisible: "Choose your seats"
+- extendedWaitUntil:
+    visible: "Choose your seats"
+    timeout: 20000
 - tapOn: {id: "seat-R1-1"}
 - tapOn: {id: "seat-R1-2"}
 - tapOn: {id: "seat-R1-3"}

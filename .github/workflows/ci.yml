@@ -205,7 +205,7 @@ jobs:
             ./tool/run_integration_tests.sh
             adb install -r build/app/outputs/flutter-apk/app-profile.apk
             timeout 4m maestro test .maestro/common/warm_up.yaml || echo "warm-up didn't finish; carrying on"
-            timeout 12m maestro test .maestro --format junit --output maestro-report.xml --test-output-dir maestro-output || { echo '--- On screen'; adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1; adb shell cat /sdcard/ui.xml | tr '>' '\n' | grep -oE 'text="[^"]+"|content-desc="[^"]+"|resource-id="[^"]+"' | head -40; echo '--- Top activity'; adb shell dumpsys activity activities | grep -E 'ResumedActivity' | head -3; exit 1; }
+            timeout 12m maestro test .maestro --format junit --output maestro-report.xml --test-output-dir maestro-output || { echo '--- On screen'; adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1; adb shell cat /sdcard/ui.xml | tr '>' '\n' | grep -oE 'text="[^"]+"|content-desc="[^"]+"|resource-id="[^"]+"' | head -40; echo '--- Top activity'; adb shell dumpsys activity activities | grep -E 'ResumedActivity' | head -3; echo '--- API log (end)'; tail -40 api.log; ./tool/print_failure_screenshots.sh maestro-output; exit 1; }
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
