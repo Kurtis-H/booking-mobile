@@ -195,9 +195,146 @@ void main() {
           r'$.items[*].status': regex('sold'),
         },
       ),
-      (api) => api.listSeats(1, limit: seatsPerPage, offset: 0, sold: true),
+      (api) => api.listSeats(1, limit: seatsPerPage, offset: 0, status: 'sold'),
     );
     expect(sold.single.status, 'sold');
+  });
+
+  final hold = {
+    'event_id': 1,
+    'seat_ids': [1],
+    'expires_at': '2026-11-28T16:10:00.000000+00:00',
+  };
+  Map<String, Map<String, Object>> holdRules() => {
+        r'$.event_id': integer,
+        r'$.seat_ids': eachLike(),
+        r'$.seat_ids[*]': integer,
+        r'$.expires_at': anyType,
+      };
+
+  test('holding a seat for a while', () async {
+    final placed = await recorded(
+      Interaction(
+        description: 'a hold on an available seat',
+        state: 'an event with available seats exists',
+        method: 'PUT',
+        path: '/events/1/hold',
+        pathExpression: r'/events/${eventId}/hold',
+        headers: {...acceptJson, 'X-API-Key': buyer, 'Content-Type': 'application/json'},
+        body: {
+          'seat_ids': [1],
+        },
+        bodyExpressions: {r'$.seat_ids[0]': r'${seatId}'},
+        status: 200,
+        responseBody: hold,
+        responseRules: holdRules(),
+      ),
+      (api) => api.holdSeats(1, [1], buyer),
+    );
+    expect(placed.seatIds, [1]);
+  });
+
+  test("the buyer's hold, so the screen can pick it up again", () async {
+    final found = await recorded(
+      Interaction(
+        description: "a request for the buyer's hold",
+        state: 'the buyer holds a seat',
+        method: 'GET',
+        path: '/events/1/hold',
+        pathExpression: r'/events/${eventId}/hold',
+        headers: {...acceptJson, 'X-API-Key': buyer},
+        status: 200,
+        responseBody: hold,
+        responseRules: holdRules(),
+      ),
+      (api) => api.getHold(1, buyer),
+    );
+    expect(found?.seatIds, [1]);
+  });
+
+  test('a 404 when the buyer holds nothing, which the app reads as no hold', () async {
+    final found = await recorded(
+      Interaction(
+        description: "a request for a hold the buyer doesn't have",
+        state: 'an event with available seats exists',
+        method: 'GET',
+        path: '/events/1/hold',
+        pathExpression: r'/events/${eventId}/hold',
+        headers: {...acceptJson, 'X-API-Key': buyer},
+        status: 404,
+        responseBody: {'detail': 'Nothing held'},
+        responseRules: {r'$.detail': anyType},
+      ),
+      (api) => api.getHold(1, buyer),
+    );
+    expect(found, isNull);
+  });
+
+  test('the seats someone holds, so the map can show them', () async {
+    final held = await recorded(
+      Interaction(
+        description: "a request for an event's held seats",
+        state: 'the buyer holds a seat',
+        method: 'GET',
+        path: '/events/1/seats',
+        pathExpression: r'/events/${eventId}/seats',
+        query: {'limit': '$seatsPerPage', 'offset': '0', 'status': 'held'},
+        headers: acceptJson,
+        status: 200,
+        responseBody: {
+          'items': [
+            {'id': 1, 'label': 'R1-1', 'price_cents': 3500, 'status': 'held'},
+          ],
+        },
+        responseRules: {
+          r'$.items': eachLike(),
+          r'$.items[*].id': integer,
+          r'$.items[*].label': anyType,
+          r'$.items[*].price_cents': integer,
+          r'$.items[*].status': regex('held'),
+        },
+      ),
+      (api) => api.listSeats(1, limit: seatsPerPage, offset: 0, status: 'held'),
+    );
+    expect(held.single.status, 'held');
+  });
+
+  test('a 409 with a reason when another buyer holds the seat', () async {
+    await expectLater(
+      recorded(
+        Interaction(
+          description: 'an order for a seat another buyer holds',
+          state: 'the buyer holds a seat',
+          method: 'POST',
+          path: '/orders',
+          headers: {...acceptJson, 'X-API-Key': buyer, 'Content-Type': 'application/json'},
+          body: {
+            'seat_ids': [2],
+          },
+          bodyExpressions: {r'$.seat_ids[0]': r'${rivalSeatId}'},
+          status: 409,
+          responseBody: {'detail': 'One or more seats are held by another buyer'},
+          responseRules: {r'$.detail': anyType},
+        ),
+        (api) => api.createOrder([2], buyer),
+      ),
+      throwsA(apiError(409)),
+    );
+  });
+
+  test('releasing a hold', () async {
+    await recorded(
+      Interaction(
+        description: "a request to release the buyer's hold",
+        state: 'the buyer holds a seat',
+        method: 'DELETE',
+        path: '/events/1/hold',
+        pathExpression: r'/events/${eventId}/hold',
+        headers: {...acceptJson, 'X-API-Key': buyer},
+        status: 204,
+      ),
+      (api) => api.releaseHold(1, buyer),
+    );
   });
 
   test('buying a seat', () async {

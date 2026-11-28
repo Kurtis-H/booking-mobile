@@ -40,3 +40,9 @@ String formatDateTime(DateTime when, {bool utc = false}) {
 
 /// "1 seat", "3 seats".
 String pluralize(int count, String word) => '$count $word${count == 1 ? '' : 's'}';
+
+/// Time left as "9:41". Never negative.
+String formatCountdown(Duration left) {
+  final total = left.isNegative ? 0 : (left.inMilliseconds / 1000).ceil();
+  return '${total ~/ 60}:${(total % 60).toString().padLeft(2, '0')}';
+}

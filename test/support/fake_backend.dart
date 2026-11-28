@@ -66,7 +66,12 @@ class FakeBackend {
         }
       }
     }
+    _holdForSomeoneElse();
   }
+
+  void _holdForSomeoneElse() =>
+      // Someone else holds C-5, far into the future, so the map always shows a held seat.
+      holdBehindTheScenes(seatId('C-5'), until: DateTime.utc(2100));
 
   void _addLayout(int eventId, List<(String, int, int, int)> sections) {
     const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -100,6 +105,44 @@ class FakeBackend {
   final orders = <Map<String, Object>>[];
   final requests = <String>[];
 
+  /// Seat id -> who holds it and until when.
+  final holds = <int, ({String owner, int event, DateTime until})>{};
+
+  static const holdFor = Duration(minutes: 10);
+
+  /// The fake server's clock, for holds. Tests can fix it.
+  DateTime Function() now = DateTime.now;
+
+  String? heldBy(int seatId) {
+    final hold = holds[seatId];
+    return hold != null && hold.until.isAfter(now()) ? hold.owner : null;
+  }
+
+  /// Another buyer holds a seat, behind the app's back.
+  void holdBehindTheScenes(int seatId, {String owner = 'key-user-2', DateTime? until}) {
+    final seat = seats.firstWhere((s) => s['id'] == seatId);
+    holds[seatId] = (
+      owner: owner,
+      event: seat['event']! as int,
+      until: until ?? now().add(holdFor),
+    );
+  }
+
+  /// The id of event 1's seat with this label, in the showcase venue.
+  int seatId(String label) =>
+      seats.firstWhere((s) => s['event'] == 1 && s['label'] == label)['id']! as int;
+
+  /// End every hold now, as if the clock had run out.
+  void expireHolds() {
+    for (final entry in holds.entries.toList()) {
+      holds[entry.key] = (
+        owner: entry.value.owner,
+        event: entry.value.event,
+        until: now().subtract(const Duration(seconds: 1)),
+      );
+    }
+  }
+
   /// Set to make the next order fail with this status (and optional Retry-After).
   int? failNextOrderWith;
   String? retryAfter;
@@ -107,8 +150,9 @@ class FakeBackend {
 
   BookingApi api() => BookingApi(baseUrl: 'http://fake', client: MockClient(_handle));
 
-  List<Map<String, Object>> _available(int eventId) =>
-      seats.where((s) => s['event'] == eventId && s['status'] == 'available').toList();
+  List<Map<String, Object>> _available(int eventId) => seats
+      .where((s) => s['event'] == eventId && s['status'] == 'available' && heldBy(s['id']! as int) == null)
+      .toList();
 
   Map<String, Object> _seatOut(Map<String, Object> s) => {
         'id': s['id']!,
@@ -146,18 +190,71 @@ class FakeBackend {
       return json(
           {'items': page.toList(), 'total': events.length, 'limit': limit, 'offset': offset});
     }
-    if (request.method == 'GET' && path.length >= 2 && path[0] == 'events') {
+    if (path.length >= 2 && path[0] == 'events' && (request.method == 'GET' || (path.length == 3 && path[2] == 'hold'))) {
       final id = int.tryParse(path[1]);
       final event = events.where((e) => e['id'] == id).firstOrNull;
       if (event == null) return notFound('Event');
       if (path.length == 2) return json({...event, 'available_seats': _available(id!).length});
+      if (path[2] == 'hold') {
+        if (user == null) return json({'detail': 'Unknown API key'}, 401);
+        final eventId = id!;
+        if (request.method == 'DELETE') {
+          holds.removeWhere((_, h) => h.owner == user && h.event == eventId);
+          return http.Response('', 204);
+        }
+        if (request.method == 'GET') {
+          final mine = holds.entries
+              .where((e) =>
+                  e.value.owner == user &&
+                  e.value.event == eventId &&
+                  e.value.until.isAfter(now()) &&
+                  seats.any((s) => s['id'] == e.key && s['status'] == 'available'))
+              .toList();
+          if (mine.isEmpty) return json({'detail': "You don't hold any seats for this event"}, 404);
+          return json({
+            'event_id': eventId,
+            'seat_ids': (mine.map((e) => e.key).toList()..sort()),
+            'expires_at': mine.first.value.until.toUtc().toIso8601String(),
+          });
+        }
+        final ids = ((jsonDecode(request.body) as Map<String, dynamic>)['seat_ids'] as List<dynamic>)
+            .cast<int>();
+        final chosen =
+            ids.map((sid) => seats.where((s) => s['id'] == sid && s['event'] == eventId).firstOrNull);
+        if (chosen.any((s) => s == null)) return notFound('Seat');
+        if (chosen.any((s) => s!['status'] != 'available')) {
+          return json({'detail': 'One or more seats are already taken'}, 409);
+        }
+        if (ids.any((sid) => ![null, user].contains(heldBy(sid)))) {
+          return json({'detail': 'One or more seats are held by another buyer'}, 409);
+        }
+        holds.removeWhere((_, h) => h.owner == user && h.event == eventId);
+        final until = now().add(holdFor);
+        for (final sid in ids) {
+          holds[sid] = (owner: user, event: eventId, until: until);
+        }
+        return json({
+          'event_id': eventId,
+          'seat_ids': ids.toList()..sort(),
+          'expires_at': until.toUtc().toIso8601String(),
+        });
+      }
       if (path[2] == 'seats') {
         final status = q['status'] ?? 'available';
+        bool matches(Map<String, Object> s) {
+          final held = heldBy(s['id']! as int) != null;
+          return switch (status) {
+            'held' => s['status'] == 'available' && held,
+            'available' => s['status'] == 'available' && !held,
+            _ => s['status'] == status,
+          };
+        }
+
         final page = seats
-            .where((s) => s['event'] == id && s['status'] == status)
+            .where((s) => s['event'] == id && matches(s))
             .skip(offset)
             .take(limit)
-            .map(_seatOut)
+            .map((s) => {..._seatOut(s), 'status': status})
             .toList();
         return json({'items': page, 'limit': limit, 'offset': offset});
       }
@@ -178,6 +275,9 @@ class FakeBackend {
         if (chosen.any((s) => s == null)) return notFound('Seat');
         if (chosen.any((s) => s!['status'] != 'available')) {
           return json({'detail': 'One or more seats are already taken'}, 409);
+        }
+        if (chosen.any((s) => ![null, user].contains(heldBy(s!['id']! as int)))) {
+          return json({'detail': 'One or more seats are held by another buyer'}, 409);
         }
         for (final s in chosen) {
           s!['status'] = 'sold';

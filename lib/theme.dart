@@ -21,6 +21,9 @@ abstract final class Palette {
   static const seatLine = Color(0xFF9EA5D6);
   static const sold = Color(0xFFCFCDD8);
   static const soldInk = Color(0xFF4A4858);
+  // Held by someone else: a pale lavender seat with a clock, outlined.
+  static const heldSeat = Color(0xFFEEECF9);
+  static const heldLine = Color(0xFF6A64B0);
 
   /// One color per event, picked by id. White text passes WCAG AA on each.
   static const hues = [

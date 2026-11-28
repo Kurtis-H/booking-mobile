@@ -19,12 +19,16 @@ class SeatMap extends StatelessWidget {
     super.key,
     required this.seats,
     this.sold = const [],
+    this.heldByOthers = const [],
     required this.selected,
     required this.onToggle,
   });
 
   final List<Seat> seats;
   final List<Seat> sold;
+
+  /// Seats someone else holds: in place, marked with a clock, and not pickable.
+  final List<Seat> heldByOthers;
   final List<int> selected;
   final ValueChanged<int> onToggle;
 
@@ -41,6 +45,7 @@ class SeatMap extends StatelessWidget {
     final sections = groupBySection([
       ...seats,
       ...sold.where((seat) => !available.contains(seat.id)),
+      ...heldByOthers.map((seat) => seat.withStatus('held')),
     ]);
     final plain = isPlainBlock(sections);
     return Column(
@@ -256,6 +261,25 @@ class _SeatButton extends StatelessWidget {
       bottomRight: Radius.circular(6),
     );
     final stripe = tier;
+    if (seat.status == 'held') {
+      return Semantics(
+        identifier: 'held-seat-${seat.label}',
+        label: 'Seat ${seat.label}, held by someone else',
+        excludeSemantics: true,
+        child: Container(
+          key: ValueKey('held-seat-${seat.label}'),
+          width: _seatSize,
+          height: _seatSize,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Palette.heldSeat,
+            borderRadius: shape,
+            border: Border.all(color: Palette.heldLine, width: 1.5),
+          ),
+          child: const Icon(Icons.schedule, size: 20, color: Palette.heldLine),
+        ),
+      );
+    }
     if (seat.status == 'sold') {
       return Semantics(
         identifier: 'sold-seat-${seat.label}',

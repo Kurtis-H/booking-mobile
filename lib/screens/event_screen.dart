@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../api/booking_api.dart';
@@ -15,6 +17,10 @@ import 'sign_in_screen.dart';
 
 const seatsPerPage = 100;
 
+/// The time, for the hold countdown. Tests move it forward to run a hold out.
+@visibleForTesting
+DateTime Function() clockNow = DateTime.now;
+
 class EventScreen extends StatefulWidget {
   const EventScreen({super.key, required this.eventId});
   final int eventId;
@@ -29,6 +35,18 @@ class _EventScreenState extends State<EventScreen> {
 
   /// Seats already sold: drawn greyed out in place, so rows keep their shape.
   final List<Seat> _sold = [];
+
+  /// Seats someone holds, possibly you.
+  final List<Seat> _held = [];
+
+  /// Your hold on this event, if any, and a ticker for its countdown.
+  Hold? _hold;
+  Timer? _ticker;
+  DateTime _now = clockNow();
+  bool _holding = false;
+
+  /// Polite news about the hold ("2 seats held for you for 10 minutes.").
+  String? _holdNews;
   bool _moreSeats = false;
   Object? _loadError;
   bool _loading = true;
@@ -53,9 +71,17 @@ class _EventScreenState extends State<EventScreen> {
     try {
       final event = await _api.getEvent(widget.eventId);
       final seats = await _api.listSeats(widget.eventId, limit: seatsPerPage, offset: 0);
-      final sold = await _allSold();
+      final sold = await _all('sold');
+      final held = await _all('held');
+      final key = SessionScope.of(context).apiKey;
+      final hold = key == null ? null : await _api.getHold(widget.eventId, key);
       if (!mounted) return;
+      _setHold(hold);
       setState(() {
+        _held
+          ..clear()
+          ..addAll(held);
+        if (hold != null) _selected = List.of(hold.seatIds);
         _event = event;
         _seats
           ..clear()
@@ -72,19 +98,112 @@ class _EventScreenState extends State<EventScreen> {
     }
   }
 
-  /// Every sold seat, a page at a time. An event has at most 1,000 seats.
-  Future<List<Seat>> _allSold() async {
-    final sold = <Seat>[];
+  /// Every seat with this status, a page at a time. An event has at most 1,000 seats.
+  Future<List<Seat>> _all(String status) async {
+    final all = <Seat>[];
     while (true) {
       final page = await _api.listSeats(
         widget.eventId,
         limit: seatsPerPage,
-        offset: sold.length,
-        sold: true,
+        offset: all.length,
+        status: status,
       );
-      sold.addAll(page);
-      if (page.length < seatsPerPage) return sold;
+      all.addAll(page);
+      if (page.length < seatsPerPage) return all;
     }
+  }
+
+  Set<int> get _mine => {...?_hold?.seatIds};
+
+  /// Seats you can pick: the available ones, plus the ones you hold.
+  List<Seat> get _pickable => [
+        ..._seats,
+        for (final seat in _held)
+          if (_mine.contains(seat.id)) seat.withStatus('available'),
+      ];
+
+  List<Seat> get _heldByOthers => [
+        for (final seat in _held)
+          if (!_mine.contains(seat.id)) seat,
+      ];
+
+  bool get _holdMatchesSelection {
+    final hold = _hold;
+    return hold != null &&
+        hold.seatIds.length == _selected.length &&
+        hold.seatIds.every(_selected.contains);
+  }
+
+  /// Keep the hold, and tick the countdown once a second while there is one.
+  void _setHold(Hold? hold) {
+    _hold = hold;
+    _ticker?.cancel();
+    _ticker = null;
+    if (hold == null) return;
+    _now = clockNow();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+  }
+
+  void _tick() {
+    final hold = _hold;
+    if (!mounted || hold == null) return;
+    setState(() => _now = clockNow());
+    if (!_now.isBefore(hold.expiresAt)) {
+      setState(() {
+        _setHold(null);
+        _selected = [];
+        _holdNews = null;
+        _notice =
+            "Your hold ran out, so those seats are back on sale. Pick them again if they're still free.";
+      });
+      unawaited(_reload());
+    }
+  }
+
+  Future<void> _placeHold() async {
+    final key = SessionScope.of(context).apiKey;
+    if (key == null) return;
+    setState(() {
+      _holding = true;
+      _notice = null;
+    });
+    try {
+      final hold = await _api.holdSeats(widget.eventId, _selected, key);
+      if (!mounted) return;
+      setState(() {
+        _holdNews = '${pluralize(hold.seatIds.length, 'seat')} held for you for 10 minutes.';
+      });
+      await _reload();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _notice = holdErrorMessage(e));
+      if (e is ApiException && e.statusCode == 409) await _reload();
+    } finally {
+      if (mounted) setState(() => _holding = false);
+    }
+  }
+
+  Future<void> _release() async {
+    final key = SessionScope.of(context).apiKey;
+    if (key == null) return;
+    try {
+      await _api.releaseHold(widget.eventId, key);
+      if (!mounted) return;
+      setState(() {
+        _setHold(null);
+        _selected = [];
+        _holdNews = 'Your seats are released.';
+      });
+      await _reload();
+    } catch (e) {
+      if (mounted) setState(() => _notice = holdErrorMessage(e));
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadMore() async {
@@ -157,7 +276,7 @@ class _EventScreenState extends State<EventScreen> {
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
-            _Hero(event: event!, seats: _seats),
+            _Hero(event: event!, seats: _pickable),
             const SizedBox(height: 16),
             Card(
               // Keep the heading, the hint and each seat as their own
@@ -175,8 +294,9 @@ class _EventScreenState extends State<EventScreen> {
                     ),
                     const SizedBox(height: 12),
                     SeatMap(
-                      seats: _seats,
+                      seats: _pickable,
                       sold: _sold,
+                      heldByOthers: _heldByOthers,
                       selected: _selected,
                       onToggle: _toggle,
                     ),
@@ -222,7 +342,7 @@ class _EventScreenState extends State<EventScreen> {
                           ),
                         ),
                       Text(
-                        'Total: ${formatCents(totalCents(_seats, _selected))}',
+                        'Total: ${formatCents(totalCents(_pickable, _selected))}',
                         key: const ValueKey('order-total'),
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
@@ -239,6 +359,38 @@ class _EventScreenState extends State<EventScreen> {
                                       : 'Sign in to buy ${pluralize(_selected.length, 'seat')}',
                         ),
                       ),
+                      if (session.isSignedIn && _selected.isNotEmpty && !_holdMatchesSelection)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: OutlinedButton(
+                            key: const ValueKey('hold-button'),
+                            onPressed: _holding ? null : _placeHold,
+                            child: Text(
+                              _holding
+                                  ? 'Holding…'
+                                  : _hold == null
+                                      ? 'Hold for 10 minutes'
+                                      : 'Update hold',
+                            ),
+                          ),
+                        ),
+                      if (_hold case final hold?)
+                        _HoldBanner(
+                          left: hold.expiresAt.difference(_now),
+                          onRelease: _release,
+                        ),
+                      if (_holdNews case final news?)
+                        Semantics(
+                          liveRegion: true,
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              news,
+                              key: const ValueKey('hold-news'),
+                              style: const TextStyle(color: Palette.muted, fontSize: 13),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -302,4 +454,37 @@ class _Hero extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "Held for you · 9:41", with a way to let the seats go. The ticking time
+/// isn't a live region, so TalkBack doesn't read it out every second.
+class _HoldBanner extends StatelessWidget {
+  const _HoldBanner({required this.left, required this.onRelease});
+  final Duration left;
+  final VoidCallback onRelease;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        key: const ValueKey('hold-banner'),
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.fromLTRB(12, 2, 4, 2),
+        decoration: BoxDecoration(
+          color: Palette.accentSoft,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.schedule, size: 18, color: Palette.accent),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'Held for you · ${formatCountdown(left)}',
+                key: const ValueKey('hold-time-left'),
+                style: const TextStyle(color: Palette.accent, fontWeight: FontWeight.w600),
+              ),
+            ),
+            TextButton(onPressed: onRelease, child: const Text('Release')),
+          ],
+        ),
+      );
 }
