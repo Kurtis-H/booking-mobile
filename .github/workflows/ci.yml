@@ -4,11 +4,47 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      update_goldens:
+        description: "Make new golden screenshots and print them to the log to review and commit"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
+  update-goldens:
+    name: Make new golden screenshots
+    if: inputs.update_goldens
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.50.1
+          cache: true
+      - run: flutter pub get
+      - run: flutter test --update-goldens test/goldens
+      - name: Regenerate the consumer contract
+        run: flutter test test/contract
+      - name: Print the formatter's changes, if any
+        run: dart format lib test integration_test tool && git diff -- '*.dart'
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: goldens
+          path: |
+            test/goldens/images/
+            pacts/
+      - name: Print the goldens (for environments that can read logs but not artifacts)
+        run: |
+          echo "----- BEGIN GOLDENS (tar.gz, base64) -----"
+          tar czf - test/goldens/images pacts | base64 -w 0
+          echo
+          echo "----- END GOLDENS -----"
+
   test:
     name: Analyze, unit, widget and golden tests
     runs-on: ubuntu-latest
@@ -17,6 +53,8 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
+          # Pinned: golden screenshots are only comparable on one Flutter version.
+          flutter-version: 3.50.1
           cache: true
       - run: flutter pub get
       - name: Formatting
@@ -60,6 +98,8 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
+          # Pinned: golden screenshots are only comparable on one Flutter version.
+          flutter-version: 3.50.1
           cache: true
       - run: flutter pub get
       - run: flutter build apk --debug
@@ -129,6 +169,8 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
+          # Pinned: golden screenshots are only comparable on one Flutter version.
+          flutter-version: 3.50.1
           cache: true
       - run: flutter pub get
       - name: Build the app (pointing at the host machine from the emulator)
@@ -149,6 +191,9 @@ jobs:
         with:
           api-level: 34
           target: google_apis
+          # A current phone size. The default device is a small, old screen
+          # where the bottom bar covers most of the seat map.
+          profile: pixel_6
           arch: x86_64
           disable-animations: true
           # GitHub's Linux runners have 4 cores and 16 GB; the defaults (2 cores,
@@ -162,8 +207,9 @@ jobs:
             adb shell settings put global hide_error_dialogs 1 || true
             ./tool/run_integration_tests.sh
             adb install -r build/app/outputs/flutter-apk/app-profile.apk
+            adb shell wm size; adb shell wm density
             timeout 4m maestro test .maestro/common/warm_up.yaml || echo "warm-up didn't finish; carrying on"
-            timeout 12m maestro test .maestro --format junit --output maestro-report.xml --test-output-dir maestro-output || { echo '--- On screen'; adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1; adb shell cat /sdcard/ui.xml | tr '>' '\n' | grep -oE 'text="[^"]+"|content-desc="[^"]+"|resource-id="[^"]+"' | head -40; echo '--- Top activity'; adb shell dumpsys activity activities | grep -E 'ResumedActivity' | head -3; exit 1; }
+            timeout 12m maestro test .maestro --format junit --output maestro-report.xml --test-output-dir maestro-output --debug-output maestro-output/debug || { echo '--- On screen'; adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1; adb shell cat /sdcard/ui.xml | tr '>' '\n' | grep -oE 'text="[^"]+"|content-desc="[^"]+"|resource-id="[^"]+"' | head -40; echo '--- Top activity'; adb shell dumpsys activity activities | grep -E 'ResumedActivity' | head -3; echo '--- API log (end)'; tail -40 api.log; ./tool/print_failure_screenshots.sh maestro-output; exit 1; }
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:

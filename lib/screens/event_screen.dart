@@ -6,6 +6,8 @@ import '../logic/errors.dart';
 import '../logic/format.dart';
 import '../logic/selection.dart';
 import '../session.dart';
+import '../theme.dart';
+import '../widgets/date_badge.dart';
 import '../widgets/seat_map.dart';
 import '../widgets/status.dart';
 import 'order_screen.dart';
@@ -24,6 +26,9 @@ class EventScreen extends StatefulWidget {
 class _EventScreenState extends State<EventScreen> {
   EventSummary? _event;
   final List<Seat> _seats = [];
+
+  /// Seats already sold: drawn greyed out in place, so rows keep their shape.
+  final List<Seat> _sold = [];
   bool _moreSeats = false;
   Object? _loadError;
   bool _loading = true;
@@ -48,18 +53,37 @@ class _EventScreenState extends State<EventScreen> {
     try {
       final event = await _api.getEvent(widget.eventId);
       final seats = await _api.listSeats(widget.eventId, limit: seatsPerPage, offset: 0);
+      final sold = await _allSold();
       if (!mounted) return;
       setState(() {
         _event = event;
         _seats
           ..clear()
           ..addAll(seats);
+        _sold
+          ..clear()
+          ..addAll(sold);
         _moreSeats = seats.length == seatsPerPage;
       });
     } catch (e) {
       if (mounted) setState(() => _loadError = e);
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  /// Every sold seat, a page at a time. An event has at most 1,000 seats.
+  Future<List<Seat>> _allSold() async {
+    final sold = <Seat>[];
+    while (true) {
+      final page = await _api.listSeats(
+        widget.eventId,
+        limit: seatsPerPage,
+        offset: sold.length,
+        sold: true,
+      );
+      sold.addAll(page);
+      if (page.length < seatsPerPage) return sold;
     }
   }
 
@@ -123,23 +147,43 @@ class _EventScreenState extends State<EventScreen> {
     final session = SessionScope.of(context);
     final event = _event;
     return Scaffold(
-      appBar: AppBar(title: Text(event?.name ?? 'Event')),
+      // The hero names the event, so the bar names the task.
+      appBar: AppBar(title: const Text('Choose seats')),
       body: () {
         if (_loading && event == null) return const LoadingView(label: 'Loading event…');
         if (_loadError != null && event == null) {
           return ErrorView(error: _loadError!, onRetry: _reload);
         }
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
-            Text(event!.name, style: Theme.of(context).textTheme.headlineSmall),
-            Text('${event.venue} · ${formatDateTime(event.startsAt)}'),
-            const SizedBox(height: 4),
-            Text('${pluralize(event.availableSeats, 'seat')} available'),
+            _Hero(event: event!, seats: _seats),
             const SizedBox(height: 16),
-            Text('Choose your seats', style: Theme.of(context).textTheme.titleMedium),
-            const Text('Up to $maxSeatsPerOrder seats per order.'),
-            SeatMap(seats: _seats, selected: _selected, onToggle: _toggle),
+            Card(
+              // Keep the heading, the hint and each seat as their own
+              // accessibility nodes; a Card merges its text into one by default.
+              semanticContainer: false,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text('Choose your seats', style: Theme.of(context).textTheme.titleMedium),
+                    const Text(
+                      'Up to $maxSeatsPerOrder seats per order.',
+                      style: TextStyle(color: Palette.muted),
+                    ),
+                    const SizedBox(height: 12),
+                    SeatMap(
+                      seats: _seats,
+                      sold: _sold,
+                      selected: _selected,
+                      onToggle: _toggle,
+                    ),
+                  ],
+                ),
+              ),
+            ),
             if (_moreSeats)
               Padding(
                 padding: const EdgeInsets.only(top: 12),
@@ -153,47 +197,109 @@ class _EventScreenState extends State<EventScreen> {
       }(),
       bottomNavigationBar: event == null
           ? null
-          : SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (_notice != null)
-                      Semantics(
-                        liveRegion: true,
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Text(
-                            _notice!,
-                            key: const ValueKey('order-notice'),
-                            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          : DecoratedBox(
+              decoration: const BoxDecoration(
+                color: Palette.card,
+                border: Border(top: BorderSide(color: Palette.line)),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_notice != null)
+                        Semantics(
+                          liveRegion: true,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              _notice!,
+                              key: const ValueKey('order-notice'),
+                              style: TextStyle(color: Theme.of(context).colorScheme.error),
+                            ),
                           ),
                         ),
+                      Text(
+                        'Total: ${formatCents(totalCents(_seats, _selected))}',
+                        key: const ValueKey('order-total'),
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
-                    Text(
-                      'Total: ${formatCents(totalCents(_seats, _selected))}',
-                      key: const ValueKey('order-total'),
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    FilledButton(
-                      onPressed: _selected.isEmpty || _buying ? null : _buy,
-                      child: Text(
-                        _buying
-                            ? 'Placing order…'
-                            : _selected.isEmpty
-                                ? 'Select seats to buy'
-                                : session.isSignedIn
-                                    ? 'Buy ${pluralize(_selected.length, 'seat')}'
-                                    : 'Sign in to buy ${pluralize(_selected.length, 'seat')}',
+                      const SizedBox(height: 8),
+                      FilledButton(
+                        onPressed: _selected.isEmpty || _buying ? null : _buy,
+                        child: Text(
+                          _buying
+                              ? 'Placing order…'
+                              : _selected.isEmpty
+                                  ? 'Select seats to buy'
+                                  : session.isSignedIn
+                                      ? 'Buy ${pluralize(_selected.length, 'seat')}'
+                                      : 'Sign in to buy ${pluralize(_selected.length, 'seat')}',
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
+    );
+  }
+}
+
+/// The event in its own color: date, name, venue and what's left.
+class _Hero extends StatelessWidget {
+  const _Hero({required this.event, required this.seats});
+  final EventSummary event;
+  final List<Seat> seats;
+
+  @override
+  Widget build(BuildContext context) {
+    const onHue = TextStyle(color: Colors.white);
+    final cheapest =
+        seats.isEmpty ? null : seats.map((s) => s.priceCents).reduce((a, b) => a < b ? a : b);
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Palette.hueFor(event.id),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DateBadge(when: event.startsAt),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event.name,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white),
+                ),
+                const SizedBox(height: 4),
+                Text('${event.venue} · ${formatDateTime(event.startsAt)}', style: onHue),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 14,
+                  children: [
+                    Text(
+                      '${pluralize(event.availableSeats, 'seat')} available',
+                      style: onHue.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    if (cheapest != null)
+                      Text(
+                        'From ${formatCents(cheapest)}',
+                        style: onHue.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

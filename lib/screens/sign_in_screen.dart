@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../session.dart';
+import '../theme.dart';
 
 /// Returns true (via Navigator.pop) when sign-in succeeds.
 class SignInScreen extends StatefulWidget {
@@ -42,6 +43,15 @@ class _SignInScreenState extends State<SignInScreen> {
         body: ListView(
           padding: const EdgeInsets.all(20),
           children: [
+            const Icon(Icons.confirmation_number_outlined, size: 40, color: Palette.accent),
+            const SizedBox(height: 12),
+            Text('Sign in to book seats', style: Theme.of(context).textTheme.headlineSmall),
+            const SizedBox(height: 4),
+            const Text(
+              'Use your API key. You can browse events without signing in.',
+              style: TextStyle(color: Palette.muted),
+            ),
+            const SizedBox(height: 20),
             Semantics(
               identifier: 'api-key-field',
               child: TextField(
@@ -65,10 +75,23 @@ class _SignInScreenState extends State<SignInScreen> {
             ),
             if (Session.demoKey case final demoKey?) ...[
               const SizedBox(height: 24),
-              const Text('This is a demo of the booking API. You can sign in as a test buyer.'),
-              TextButton(
-                onPressed: _busy ? null : () => _attempt(demoKey),
-                child: const Text('Use the demo account'),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Palette.accentSoft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                        'This is a demo of the booking API. You can sign in as a test buyer.'),
+                    TextButton(
+                      onPressed: _busy ? null : () => _attempt(demoKey),
+                      child: const Text('Use the demo account'),
+                    ),
+                  ],
+                ),
               ),
             ],
           ],

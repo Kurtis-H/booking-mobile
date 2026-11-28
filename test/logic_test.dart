@@ -109,4 +109,29 @@ void main() {
     expect(loadErrorMessage(const ApiException(0, 'x')), contains("You're offline"));
     expect(loadErrorMessage(Exception('x')), contains('try again'));
   });
+
+  group('sections', () {
+    Seat at(int id, String section, String label, [int price = 1000]) =>
+        Seat(id: id, label: label, priceCents: price, status: 'available', section: section);
+
+    test('come out front to back, whatever order the seats arrive in', () {
+      final sections = groupBySection([
+        at(4, 'Balcony', 'C-1'),
+        at(2, 'Orchestra', 'A-2'),
+        at(1, 'Orchestra', 'A-1'),
+      ]);
+      expect(sections.keys, ['Orchestra', 'Balcony']);
+      expect(sections['Orchestra']!.map((s) => s.id), [1, 2]);
+    });
+
+    test('one General section is a plain block; anything else is a layout', () {
+      expect(isPlainBlock(groupBySection([seat(1, 'S-1')])), isTrue);
+      expect(isPlainBlock(groupBySection([at(1, 'Orchestra', 'A-1')])), isFalse);
+    });
+
+    test('a section shows one price, or its lowest when rows differ', () {
+      expect(sectionPrice([at(1, 'X', 'A-1', 9000), at(2, 'X', 'A-2', 9000)]), r'$90.00');
+      expect(sectionPrice([at(1, 'X', 'A-1', 9000), at(2, 'X', 'B-1', 7500)]), r'From $75.00');
+    });
+  });
 }

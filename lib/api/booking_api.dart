@@ -40,8 +40,16 @@ class BookingApi {
   Future<EventSummary> getEvent(int id) async =>
       EventSummary.fromJson(await _send('GET', '/events/$id') as Json);
 
-  Future<List<Seat>> listSeats(int eventId, {required int limit, required int offset}) async {
-    final page = await _send('GET', '/events/$eventId/seats?limit=$limit&offset=$offset') as Json;
+  /// Available seats, or with [sold] the ones already taken (so the map can show them).
+  Future<List<Seat>> listSeats(
+    int eventId, {
+    required int limit,
+    required int offset,
+    bool sold = false,
+  }) async {
+    final status = sold ? '&status=sold' : '';
+    final page =
+        await _send('GET', '/events/$eventId/seats?limit=$limit&offset=$offset$status') as Json;
     return (page['items'] as List<dynamic>).map((s) => Seat.fromJson(s as Json)).toList();
   }
 

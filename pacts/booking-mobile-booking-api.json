@@ -293,6 +293,105 @@
       "type": "Synchronous/HTTP"
     },
     {
+      "description": "a request for an event's sold seats",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a seat has already been sold"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/events/1/seats",
+        "query": {
+          "limit": [
+            "100"
+          ],
+          "offset": [
+            "0"
+          ],
+          "status": [
+            "sold"
+          ]
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ]
+        },
+        "generators": {
+          "path": {
+            "expression": "/events/${eventId}/seats",
+            "type": "ProviderState"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "content": {
+            "items": [
+              {
+                "id": 1,
+                "label": "R1-1",
+                "price_cents": 3500,
+                "status": "sold"
+              }
+            ]
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "matchingRules": {
+          "body": {
+            "$.items": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.items[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.items[*].label": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.items[*].price_cents": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.items[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "sold"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
       "description": "an order for an available seat",
       "pending": false,
       "providerStates": [
