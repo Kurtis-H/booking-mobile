@@ -151,7 +151,8 @@ class FakeBackend {
   BookingApi api() => BookingApi(baseUrl: 'http://fake', client: MockClient(_handle));
 
   List<Map<String, Object>> _available(int eventId) => seats
-      .where((s) => s['event'] == eventId && s['status'] == 'available' && heldBy(s['id']! as int) == null)
+      .where((s) =>
+          s['event'] == eventId && s['status'] == 'available' && heldBy(s['id']! as int) == null)
       .toList();
 
   Map<String, Object> _seatOut(Map<String, Object> s) => {
@@ -190,7 +191,9 @@ class FakeBackend {
       return json(
           {'items': page.toList(), 'total': events.length, 'limit': limit, 'offset': offset});
     }
-    if (path.length >= 2 && path[0] == 'events' && (request.method == 'GET' || (path.length == 3 && path[2] == 'hold'))) {
+    if (path.length >= 2 &&
+        path[0] == 'events' &&
+        (request.method == 'GET' || (path.length == 3 && path[2] == 'hold'))) {
       final id = int.tryParse(path[1]);
       final event = events.where((e) => e['id'] == id).firstOrNull;
       if (event == null) return notFound('Event');
@@ -217,10 +220,11 @@ class FakeBackend {
             'expires_at': mine.first.value.until.toUtc().toIso8601String(),
           });
         }
-        final ids = ((jsonDecode(request.body) as Map<String, dynamic>)['seat_ids'] as List<dynamic>)
-            .cast<int>();
-        final chosen =
-            ids.map((sid) => seats.where((s) => s['id'] == sid && s['event'] == eventId).firstOrNull);
+        final ids =
+            ((jsonDecode(request.body) as Map<String, dynamic>)['seat_ids'] as List<dynamic>)
+                .cast<int>();
+        final chosen = ids
+            .map((sid) => seats.where((s) => s['id'] == sid && s['event'] == eventId).firstOrNull);
         if (chosen.any((s) => s == null)) return notFound('Seat');
         if (chosen.any((s) => s!['status'] != 'available')) {
           return json({'detail': 'One or more seats are already taken'}, 409);

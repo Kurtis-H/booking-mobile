@@ -392,6 +392,426 @@
       "type": "Synchronous/HTTP"
     },
     {
+      "description": "a hold on an available seat",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "an event with available seats exists"
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "path": "/events/1/hold",
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "X-API-Key": [
+            "key-user-98"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "body": {
+          "content": {
+            "seat_ids": [
+              1
+            ]
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "path": {
+            "expression": "/events/${eventId}/hold",
+            "type": "ProviderState"
+          },
+          "body": {
+            "$.seat_ids[0]": {
+              "expression": "${seatId}",
+              "type": "ProviderState"
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "content": {
+            "event_id": 1,
+            "seat_ids": [
+              1
+            ],
+            "expires_at": "2026-11-28T16:10:00.000000+00:00"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "matchingRules": {
+          "body": {
+            "$.event_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.seat_ids": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.seat_ids[*]": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.expires_at": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for the buyer's hold",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "the buyer holds a seat"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/events/1/hold",
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "X-API-Key": [
+            "key-user-98"
+          ]
+        },
+        "generators": {
+          "path": {
+            "expression": "/events/${eventId}/hold",
+            "type": "ProviderState"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "content": {
+            "event_id": 1,
+            "seat_ids": [
+              1
+            ],
+            "expires_at": "2026-11-28T16:10:00.000000+00:00"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "matchingRules": {
+          "body": {
+            "$.event_id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.seat_ids": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.seat_ids[*]": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.expires_at": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for a hold the buyer doesn't have",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "an event with available seats exists"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/events/1/hold",
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "X-API-Key": [
+            "key-user-98"
+          ]
+        },
+        "generators": {
+          "path": {
+            "expression": "/events/${eventId}/hold",
+            "type": "ProviderState"
+          }
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "content": {
+            "detail": "Nothing held"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "matchingRules": {
+          "body": {
+            "$.detail": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for an event's held seats",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "the buyer holds a seat"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/events/1/seats",
+        "query": {
+          "limit": [
+            "100"
+          ],
+          "offset": [
+            "0"
+          ],
+          "status": [
+            "held"
+          ]
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ]
+        },
+        "generators": {
+          "path": {
+            "expression": "/events/${eventId}/seats",
+            "type": "ProviderState"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "content": {
+            "items": [
+              {
+                "id": 1,
+                "label": "R1-1",
+                "price_cents": 3500,
+                "status": "held"
+              }
+            ]
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "matchingRules": {
+          "body": {
+            "$.items": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.items[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.items[*].label": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.items[*].price_cents": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.items[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "held"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "an order for a seat another buyer holds",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "the buyer holds a seat"
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "path": "/orders",
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "X-API-Key": [
+            "key-user-98"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "body": {
+          "content": {
+            "seat_ids": [
+              2
+            ]
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "generators": {
+          "body": {
+            "$.seat_ids[0]": {
+              "expression": "${rivalSeatId}",
+              "type": "ProviderState"
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "content": {
+            "detail": "One or more seats are held by another buyer"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "matchingRules": {
+          "body": {
+            "$.detail": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to release the buyer's hold",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "the buyer holds a seat"
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "path": "/events/1/hold",
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "X-API-Key": [
+            "key-user-98"
+          ]
+        },
+        "generators": {
+          "path": {
+            "expression": "/events/${eventId}/hold",
+            "type": "ProviderState"
+          }
+        }
+      },
+      "response": {
+        "status": 204
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
       "description": "an order for an available seat",
       "pending": false,
       "providerStates": [

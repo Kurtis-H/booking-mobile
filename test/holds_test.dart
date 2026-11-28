@@ -82,7 +82,8 @@ void main() {
       app.backend.holdBehindTheScenes(1);
       await tester.tap(find.text('Buy 1 seat'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('Someone is holding one of those seats right now.'), findsOneWidget);
+      expect(
+          find.textContaining('Someone is holding one of those seats right now.'), findsOneWidget);
     });
 
     testWidgets('releases the hold', (tester) async {
@@ -137,7 +138,8 @@ void main() {
       expect(holdErrorMessage(held), contains('Someone is holding one of those seats'));
       expect(orderErrorMessage(limit), startsWith('You can have at most 10 seats for one event'));
       expect(orderErrorMessage(const ApiException(409, 'x')), startsWith('Someone just took'));
-      expect(holdErrorMessage(const ApiException(500, 'x')), "We couldn't hold those seats. Please try again.");
+      expect(holdErrorMessage(const ApiException(500, 'x')),
+          "We couldn't hold those seats. Please try again.");
     });
 
     test('count down as minutes and seconds', () {

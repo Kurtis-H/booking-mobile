@@ -14,6 +14,7 @@ These are the app's golden test images, so they always show the current build.
 
 * Browse upcoming events a page at a time, with seats left and sold-out events marked.
 * Pick up to 10 seats on a seat map, see the total, and buy them (signing in first if needed).
+* Hold your seats for 10 minutes while you decide, with a countdown and a Release button. A hold is picked up again when you reopen the event. Seats someone else holds show a clock and can't be picked, and when a hold runs out the app says so.
 * Venues are laid out in sections (Orchestra, Mezzanine, Balcony), each a price tier with its own color, as on the website. Rows stay on one line and a wide section scrolls sideways, with the row letters pinned. Sold seats stay in place as darker seats marked with an X (not just a different color), so rows keep their shape.
 * See your orders and open any of them.
 * Handle what goes wrong on a phone: someone else buys your seat first (409), rate limits (429, using `Retry-After`), an expired session (401), missing events (404), and being offline. Every case has a clear message and a way forward.
@@ -84,7 +85,7 @@ I wrote this without a local Flutter SDK, so GitHub Actions did the compiling: a
 
 ## Golden tests
 
-`test/goldens/` compares 7 screens and 2 seat-map states with approved images, rendered with Inter and Material Icons. Flutter tests draw text as blocks by default, which would hide any change to type, so `flutter_test_config.dart` loads the real fonts for that folder. Flutter is pinned (3.50.1) in CI, because goldens are only comparable on one version.
+`test/goldens/` compares 8 screens and 2 seat-map states with approved images, rendered with Inter and Material Icons. Flutter tests draw text as blocks by default, which would hide any change to type, so `flutter_test_config.dart` loads the real fonts for that folder. Flutter is pinned (3.50.1) in CI, because goldens are only comparable on one version.
 
 To change the look on purpose, run the CI workflow by hand with "Make new golden screenshots" ticked. It also regenerates the consumer contract, uploads both as an artifact and prints them to the log. Review the images and commit them.
 
