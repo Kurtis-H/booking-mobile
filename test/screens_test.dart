@@ -95,7 +95,8 @@ void main() {
       expect(app.backend.orders, isEmpty);
     });
 
-    testWidgets('the seat heading is its own accessibility node, as UI tests and screen readers need',
+    testWidgets(
+        'the seat heading is its own accessibility node, as UI tests and screen readers need',
         (tester) async {
       await pumpApp(tester, home: eventHome(1));
       expect(find.bySemanticsLabel('Choose your seats'), findsOneWidget);
